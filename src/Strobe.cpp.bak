@@ -1,0 +1,67 @@
+#include <Arduino.h>
+#include "FastLED.h"
+
+FASTLED_USING_NAMESPACE
+
+#if defined(FASTLED_VERSION) && (FASTLED_VERSION < 3001000)
+#warning "Requires FastLED 3.1 or later; check github for latest code."
+#endif
+
+#define DATA_PIN 2
+#define CLK_PIN  3
+#define LED_TYPE APA102
+#define COLOR_ORDER BGR
+#define NUM_LEDS 60
+CRGB leds[NUM_LEDS];
+
+#define BRIGHTNESS 10
+
+#define Ser Serial
+
+void setup() {
+  delay(200); // delay for recovery
+
+  Ser.begin(9600);
+
+  // tell FastLED about the LED strip configuration
+  FastLED.addLeds<LED_TYPE,
+                  DATA_PIN,
+                  CLK_PIN,
+                  COLOR_ORDER,
+                  DATA_RATE_MHZ(1)>
+                 (leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+
+  // set master brightness control
+  FastLED.setBrightness(BRIGHTNESS);
+
+  // Clear LED strip
+  FastLED.clear();
+  FastLED.show();
+}
+
+float FPS = 1;          // flashes per second [Hz]
+uint32_t T_flash_update = round(1000./FPS);   // [ms]
+uint32_t T_flash_length = 1;                 // [ms]
+uint32_t T_update_show  = 1;                  // [ms]
+
+uint32_t prevMillis = 0;
+uint32_t prevMillis2 = 0;
+void loop() {
+  uint32_t curMillis = millis();
+
+  if (curMillis - prevMillis > T_flash_update) {
+    prevMillis = prevMillis + T_flash_update;    // strict interval keeping
+
+    fill_solid(leds, NUM_LEDS, CRGB::White);
+    FastLED.show();
+    delay(T_flash_length);
+    //FastLED.delay(T_flash_length);
+    FastLED.clear();
+    FastLED.show();
+  }
+
+  if (curMillis - prevMillis2 > T_update_show) {
+    prevMillis2 = curMillis;
+    FastLED.show();
+  }
+}
