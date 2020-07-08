@@ -1,5 +1,9 @@
 #include <Arduino.h>
 #include "FastLED.h"
+#include "DvG_SerialCommand.h"
+
+#define Ser Serial
+DvG_SerialCommand sc(Ser);  // Instantiate serial command listener
 
 FASTLED_USING_NAMESPACE
 
@@ -134,7 +138,9 @@ void nextPattern()
 }
 
 void setup() {
-  delay(1000); // 3 second delay for recovery
+  Ser.begin(9600);
+  
+  delay(1000); // 3 second delay for recovery FASTLED
 
   // tell FastLED about the LED strip configuration
   FastLED.addLeds<LED_TYPE, DATA_PIN, CLK_PIN, COLOR_ORDER, DATA_RATE_MHZ(1)>
@@ -147,6 +153,16 @@ void setup() {
 
 void loop()
 {
+  char* strCmd; // Incoming serial command string
+
+  if (sc.available()) {
+    strCmd = sc.getCmd();
+
+    if (strcmp(strCmd, "id?") == 0) {
+      Ser.println("FASTLED demo");
+    }
+  }
+  
   // Call the current pattern function once, updating the 'leds' array
   gPatterns[gCurrentPatternNumber]();
 
