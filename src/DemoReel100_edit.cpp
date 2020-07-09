@@ -3,7 +3,7 @@
 #include "DvG_SerialCommand.h"
 
 #define Ser Serial
-DvG_SerialCommand sc(Ser);  // Instantiate serial command listener
+DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
 FASTLED_USING_NAMESPACE
 
@@ -21,36 +21,37 @@ FASTLED_USING_NAMESPACE
 #endif
 
 #define DATA_PIN 2
-#define CLK_PIN  3
+#define CLK_PIN 3
 #define LED_TYPE APA102
 #define COLOR_ORDER BGR
-#define NUM_LEDS    13
+#define NUM_LEDS 13
 #define NUM_LEDS_QUAD_COPY 52
 CRGB leds[NUM_LEDS];
 CRGB leds_quad_copy[NUM_LEDS_QUAD_COPY];
 
-#define BRIGHTNESS         128
-#define FRAMES_PER_SECOND  120  // 120
+#define BRIGHTNESS 128
+#define FRAMES_PER_SECOND 120 // 120
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
-uint8_t gHue = 0; // rotating "base color" used by many of the patterns
+uint8_t gHue = 0;                  // rotating "base color" used by many of the patterns
 
 typedef void (*SimplePatternList[])();
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
-void addGlitter( fract8 chanceOfGlitter)
+void addGlitter(fract8 chanceOfGlitter)
 {
-  if( random8() < chanceOfGlitter) {
-    leds[ random16(NUM_LEDS) ] += CRGB::White;
+  if (random8() < chanceOfGlitter)
+  {
+    leds[random16(NUM_LEDS)] += CRGB::White;
   }
 }
 
 void rainbow()
 {
   // FastLED's built-in rainbow generator
-  fill_rainbow(leds, NUM_LEDS, gHue, 4);  // leds, NUM_LEDS, gHue, 26 or 39
+  fill_rainbow(leds, NUM_LEDS, gHue, 4); // leds, NUM_LEDS, gHue, 26 or 39
 }
 
 void rainbowWithGlitter()
@@ -63,41 +64,45 @@ void rainbowWithGlitter()
 void confetti()
 {
   // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( leds, NUM_LEDS, 10);
+  fadeToBlackBy(leds, NUM_LEDS, 10);
   int pos = random16(NUM_LEDS);
-  leds[pos] += CHSV( gHue + random8(64), 200, 255);
+  leds[pos] += CHSV(gHue + random8(64), 200, 255);
 }
 
 void sinelon()
 {
   // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy( leds, NUM_LEDS, 4);
-  int pos = beatsin16(13,0,NUM_LEDS);
-  leds[pos] += CHSV( gHue, 255, 255);  // gHue, 255, 192
+  fadeToBlackBy(leds, NUM_LEDS, 4);
+  int pos = beatsin16(13, 0, NUM_LEDS);
+  leds[pos] += CHSV(gHue, 255, 255); // gHue, 255, 192
 }
 
 void bpm()
 {
   // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
   uint8_t BeatsPerMinute = 26;
-  CRGBPalette16 palette = PartyColors_p; //RainbowColors_p;//PartyColors_p;
-  uint8_t beat = beatsin8(0, BeatsPerMinute, 52);  //  BeatsPerMinute, 64, 255
-  for( int i = 0; i < NUM_LEDS; i++) {
-    leds[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*1));
+  CRGBPalette16 palette = PartyColors_p;          //RainbowColors_p;//PartyColors_p;
+  uint8_t beat = beatsin8(0, BeatsPerMinute, 52); //  BeatsPerMinute, 64, 255
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 1));
   }
 }
 
-void juggle() {
+void juggle()
+{
   // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy( leds, NUM_LEDS, 20);
+  fadeToBlackBy(leds, NUM_LEDS, 20);
   byte dothue = 0;
-  for( int i = 0; i < 8; i++) {
-    leds[beatsin16(i+7,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+  for (int i = 0; i < 8; i++)
+  {
+    leds[beatsin16(i + 7, 0, NUM_LEDS)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
 }
 
-void dennis() {
+void dennis()
+{
   CRGBPalette16 palette = RainbowColors_p;
   fadeToBlackBy(leds, NUM_LEDS, 1);
   /*
@@ -106,22 +111,28 @@ void dennis() {
   }
   */
   //int pos = beatsin16(13, 0, NUM_LEDS - 1);
-  int pos = beat8(46)/256.0*15;
+  int pos = beat8(46) / 256.0 * 15;
   leds[pos] = ColorFromPalette(palette, gHue, 46);
   //leds[NUM_LEDS - 1] = CRGB::Red;
 }
 
-void full_white() {
+void full_white()
+{
   fill_solid(leds, NUM_LEDS, CRGB::White);
 }
 
-void strobe() {
-  if (gHue % 16) {
+void strobe()
+{
+  if (gHue % 16)
+  {
     fill_solid(leds, NUM_LEDS, CRGB::Black);
-  } else {
-    CRGBPalette16 palette = PartyColors_p;//PartyColors_p;
-    for( int i = 0; i < NUM_LEDS; i++) { //9948
-      leds[i] = ColorFromPalette(palette, gHue+(i*2), gHue+(i*10));
+  }
+  else
+  {
+    CRGBPalette16 palette = PartyColors_p; //PartyColors_p;
+    for (int i = 0; i < NUM_LEDS; i++)
+    { //9948
+      leds[i] = ColorFromPalette(palette, gHue + (i * 2), gHue + (i * 10));
     }
     //fill_solid(leds, NUM_LEDS, CRGB::White);
   }
@@ -134,35 +145,36 @@ SimplePatternList gPatterns = {sinelon, bpm, rainbow};
 void nextPattern()
 {
   // add one to the current pattern number, and wrap around at the end
-  gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns);
+  gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
 }
 
-void setup() {
+void setup()
+{
   Ser.begin(9600);
-  
+
   delay(1000); // 3 second delay for recovery FASTLED
 
   // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE, DATA_PIN, CLK_PIN, COLOR_ORDER, DATA_RATE_MHZ(1)>
-                 (leds_quad_copy, NUM_LEDS_QUAD_COPY).setCorrection(TypicalLEDStrip);
+  FastLED.addLeds<LED_TYPE, DATA_PIN, CLK_PIN, COLOR_ORDER, DATA_RATE_MHZ(1)>(leds_quad_copy, NUM_LEDS_QUAD_COPY).setCorrection(TypicalLEDStrip);
 
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
 }
 
-
 void loop()
 {
-  char* strCmd; // Incoming serial command string
+  char *strCmd; // Incoming serial command string
 
-  if (sc.available()) {
+  if (sc.available())
+  {
     strCmd = sc.getCmd();
 
-    if (strcmp(strCmd, "id?") == 0) {
-      Ser.println("FASTLED demo");
+    if (strcmp(strCmd, "id?") == 0)
+    {
+      Ser.println("Arduino, FASTLED demo");
     }
   }
-  
+
   // Call the current pattern function once, updating the 'leds' array
   gPatterns[gCurrentPatternNumber]();
 
@@ -186,6 +198,6 @@ void loop()
   */
 
   // do some periodic updates
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 24 ) { nextPattern(); } // change patterns periodically
+  EVERY_N_MILLISECONDS(20) { gHue++; }   // slowly cycle the "base color" through the rainbow
+  EVERY_N_SECONDS(24) { nextPattern(); } // change patterns periodically
 }
