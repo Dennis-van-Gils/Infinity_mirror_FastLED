@@ -159,6 +159,9 @@ void setup()
 
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
+
+  // IR distance sensor
+  analogReadResolution(12);
 }
 
 void loop()
@@ -177,6 +180,20 @@ void loop()
 
   // Call the current pattern function once, updating the 'leds' array
   gPatterns[gCurrentPatternNumber]();
+
+  // IR distance sensor
+  // Sharp 2Y0A02
+  // 20 - 150 cm
+  float A0_V;
+  //EVERY_N_MILLISECONDS(500)
+  //{
+    A0_V = analogRead(PIN_A0) / 4095. * 3.3;
+    //Ser.println(A0_V, 2);
+    if (A0_V > 2)
+    {
+      full_white();
+    }
+  //}
 
   // send the 'leds' array out to the actual LED strip
   memmove(&leds_quad_copy[0], &leds[0], NUM_LEDS * sizeof(CRGB));
