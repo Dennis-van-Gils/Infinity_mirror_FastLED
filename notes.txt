@@ -1,0 +1,15 @@
+Arduino M0 Pro
+
+* RGB LED strip
+LS5RGB60 APA102 CP
+5 V, 5050
+Is a 'Dotstar' type
+LEDTUNING.NL
+
+--> strip direction -->
+              pin
+VCC - Brown
+CLK - White   DIO 3
+DAT - Blue    DIO 2
+GND - Black  
+
