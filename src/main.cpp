@@ -127,8 +127,8 @@ SimplePatternList gPatterns = {rainbow, rainbowWithGlitter, confetti, sinelon,
                                juggle};
 */
 // SimplePatternList gPatterns = {sinelon, bpm, rainbow};
-//SimplePatternList gPatterns = {dennis};
-SimplePatternList gPatterns = {rainbow};
+// SimplePatternList gPatterns = {dennis};
+SimplePatternList gPatterns = {sinelon};
 
 void nextPattern() {
   gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
@@ -298,15 +298,14 @@ void loop() {
         memmove(&leds_flip[idx], &leds[s - idx - 1], sizeof(CRGB));
       }
 
-      memmove(&leds_all[L / 2], &leds[0], L * sizeof(CRGB));  // bottom-right
+      memmove(&leds_all[0], &leds_flip[s / 2],
+              L / 2 * sizeof(CRGB));  // bottom-left
+      memmove(&leds_all[L / 2], &leds[0],
+              L * sizeof(CRGB));  // bottom-right & right-bottom
       memmove(&leds_all[L + L / 2], &leds_flip[0],
-              L * sizeof(CRGB));  // top-right
-      memmove(&leds_all[L * 2 + L / 2], &leds[0],
-              L * sizeof(CRGB));  // top-left
-      memmove(&leds_all[L * 3 + L / 2], &leds_flip[0],
-              s / 2 * sizeof(CRGB));  // left of bottom-left
-      memmove(&leds_all[0], &leds_flip[L / 2],
-              L / 2 * sizeof(CRGB));  // bottom of bottom-left
+              s / 2 * sizeof(CRGB));                              // right-top
+      memmove(&leds_all[L * 2], &leds_all[0], L * sizeof(CRGB));  // top
+      memmove(&leds_all[L * 3], &leds_all[L], L * sizeof(CRGB));  // left
       break;
   }
 
@@ -317,15 +316,15 @@ void loop() {
   FastLED.delay(1000 / FRAMES_PER_SECOND);
 
   // Periodic updates
-  EVERY_N_MILLISECONDS(40) { gHue++; }
+  EVERY_N_MILLISECONDS(30) { gHue++; }
   // EVERY_N_SECONDS(24) { nextPattern(); }
 
-  /*
+  //*
   EVERY_N_SECONDS(10) {
     segmenting_style++;
-    if (segmenting_style > 3) {
+    if (segmenting_style > 5) {
       segmenting_style = 0;
     }
   }
-  */
+  //*/
 }
