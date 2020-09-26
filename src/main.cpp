@@ -1,8 +1,15 @@
+/* Infinity mirror
+
+L: number of LEDs on one side (CONSTANT, 13)
+N: number of LEDs on the full strip (CONSTANT, 4 * 13 = 52)
+s: number of LEDs of the current segmenting subset (variable)
+
+Author: Dennis van Gils
+Date: 26-09-2020
+*/
+
 #include <Arduino.h>
 #include <FastLED.h>
-
-#include <algorithm>
-using namespace std;
 
 #include "DvG_SerialCommand.h"
 #define Ser Serial
@@ -15,12 +22,12 @@ FASTLED_USING_NAMESPACE
 #define DATA_PIN PIN_SPI_MOSI
 #define CLK_PIN PIN_SPI_SCK
 
-#define NUM_LEDS_ONE_SIDE 13
-#define NUM_LEDS_FULL_STRIP 52
-uint16_t num_leds_subset = 13;
-CRGB leds[NUM_LEDS_FULL_STRIP];      // subset
-CRGB leds_rev[NUM_LEDS_FULL_STRIP];  // subset reversed order
-CRGB leds_all[NUM_LEDS_FULL_STRIP];  // full strip
+#define L 13
+#define N 52
+uint16_t s = L;
+CRGB leds[N];      // subset
+CRGB leds_rev[N];  // subset reversed order
+CRGB leds_all[N];  // full strip
 
 #define BRIGHTNESS 128
 #define FRAMES_PER_SECOND 120  // 120
@@ -42,7 +49,7 @@ void setup() {
   // tell FastLED about the LED strip configuration
   FastLED
       .addLeds<LED_TYPE, DATA_PIN, CLK_PIN, COLOR_ORDER, DATA_RATE_MHZ(1)>(
-          leds_all, NUM_LEDS_FULL_STRIP)
+          leds_all, N)
       .setCorrection(TypicalLEDStrip);
 
   // set master brightness control
@@ -54,14 +61,14 @@ void setup() {
 
 void rainbow() {
   // FastLED's built-in rainbow generator
-  fill_rainbow(leds, num_leds_subset, gHue,
-               4);  // leds, num_leds_subset, gHue, 26 or 39
+  fill_rainbow(leds, s, gHue,
+               4);  // leds, s, gHue, 26 or 39
 }
 
 void sinelon() {
   // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy(leds, num_leds_subset, 4);
-  int pos = beatsin16(13, 0, num_leds_subset);
+  fadeToBlackBy(leds, s, 4);
+  int pos = beatsin16(13, 0, s);
   leds[pos] += CHSV(gHue, 255, 255);  // gHue, 255, 192
 }
 
@@ -70,40 +77,40 @@ void bpm() {
   uint8_t BeatsPerMinute = 26;
   CRGBPalette16 palette = PartyColors_p;  // RainbowColors_p;//PartyColors_p;
   uint8_t beat = beatsin8(0, BeatsPerMinute, 52);  //  BeatsPerMinute, 64, 255
-  for (int i = 0; i < num_leds_subset; i++) {
+  for (int i = 0; i < s; i++) {
     leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 1));
   }
 }
 
 void juggle() {
   // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy(leds, num_leds_subset, 20);
+  fadeToBlackBy(leds, s, 20);
   byte dothue = 0;
   for (int i = 0; i < 8; i++) {
-    leds[beatsin16(i + 7, 0, num_leds_subset)] |= CHSV(dothue, 200, 255);
+    leds[beatsin16(i + 7, 0, s)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
 }
 
-void full_white() { fill_solid(leds, NUM_LEDS_FULL_STRIP, CRGB::White); }
+void full_white() { fill_solid(leds, N, CRGB::White); }
 
 void strobe() {
   if (gHue % 16) {
-    fill_solid(leds, num_leds_subset, CRGB::Black);
+    fill_solid(leds, s, CRGB::Black);
   } else {
-    CRGBPalette16 palette = PartyColors_p;       // PartyColors_p;
-    for (int i = 0; i < num_leds_subset; i++) {  // 9948
+    CRGBPalette16 palette = PartyColors_p;  // PartyColors_p;
+    for (int i = 0; i < s; i++) {           // 9948
       leds[i] = ColorFromPalette(palette, gHue + (i * 2), gHue + (i * 10));
     }
-    // fill_solid(leds, num_leds_subset, CRGB::White);
+    // fill_solid(leds, s, CRGB::White);
   }
 }
 
 void dennis() {
-  fadeToBlackBy(leds, num_leds_subset, 16);
-  int pos = beatsin16(15, 0, num_leds_subset - 1);
+  fadeToBlackBy(leds, s, 16);
+  int pos = beatsin16(15, 0, s - 1);
   leds[pos] = CRGB::Red;
-  leds[num_leds_subset - pos - 1] = CRGB::OrangeRed;
+  leds[s - pos - 1] = CRGB::OrangeRed;
 }
 
 /*
@@ -112,8 +119,8 @@ SimplePatternList gPatterns = {
 SimplePatternList gPatterns = {rainbow, rainbowWithGlitter, confetti, sinelon,
                                juggle};
 */
-// SimplePatternList gPatterns = {sinelon, bpm, rainbow};
-SimplePatternList gPatterns = {dennis};
+SimplePatternList gPatterns = {sinelon, bpm, rainbow};
+// SimplePatternList gPatterns = {dennis};
 
 void nextPattern() {
   gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
@@ -151,53 +158,41 @@ void loop() {
   }
 
   uint16_t num_bytes;
-  uint8_t segmenting_style = 2;
+  uint8_t segmenting_style = 1;
   switch (segmenting_style) {
+    // Copied sides
     case 0:
-      num_leds_subset = NUM_LEDS_ONE_SIDE;
-
-      num_bytes = NUM_LEDS_ONE_SIDE * sizeof(CRGB);
+      s = L;
+      num_bytes = L * sizeof(CRGB);
       memmove(&leds_all[0], &leds[0], num_bytes);
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE], &leds[0], num_bytes);
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE * 2], &leds[0], num_bytes);
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE * 3], &leds[0], num_bytes);
+      memmove(&leds_all[L], &leds[0], num_bytes);
+      memmove(&leds_all[L * 2], &leds[0], num_bytes);
+      memmove(&leds_all[L * 3], &leds[0], num_bytes);
       break;
 
+    // Periodic opposite corners, N = 4
     case 1:
-      num_leds_subset = NUM_LEDS_ONE_SIDE;
-
-      for (uint8_t idx = 0; idx < num_leds_subset; idx++) {
-        memmove(&leds_rev[idx], &leds[num_leds_subset - idx - 1], sizeof(CRGB));
+      s = L;
+      for (uint8_t idx = 0; idx < s; idx++) {
+        memmove(&leds_rev[idx], &leds[s - idx - 1], sizeof(CRGB));
       }
 
-      num_bytes = NUM_LEDS_ONE_SIDE * sizeof(CRGB);
+      num_bytes = L * sizeof(CRGB);
       memmove(&leds_all[0], &leds[0], num_bytes);
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE], &leds_rev[0], num_bytes);
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE * 2], &leds[0], num_bytes);
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE * 3], &leds_rev[0], num_bytes);
+      memmove(&leds_all[L], &leds_rev[0], num_bytes);
+      memmove(&leds_all[L * 2], &leds[0], num_bytes);
+      memmove(&leds_all[L * 3], &leds_rev[0], num_bytes);
       break;
 
+    // Uni-directional side-to-side
     case 2:
-      num_leds_subset = NUM_LEDS_ONE_SIDE + 2;
-
-      // Bottom side
-      for (uint8_t idx = 0; idx < NUM_LEDS_ONE_SIDE; idx++) {
-        memmove(&leds_all[idx], &leds[0], sizeof(CRGB));
+      s = L + 2;
+      for (uint8_t idx = 0; idx < L; idx++) {
+        memmove(&leds_all[idx], &leds[0], sizeof(CRGB));              // Bottom
+        memmove(&leds_all[L * 2 + idx], &leds[L + 1], sizeof(CRGB));  // Top
+        memmove(&leds_all[L * 3 + idx], &leds[L - idx], sizeof(CRGB));  // Left
       }
-      // Right side
-      memmove(&leds_all[NUM_LEDS_ONE_SIDE], &leds[1],
-              NUM_LEDS_ONE_SIDE * sizeof(CRGB));
-      // Top side
-      for (uint8_t idx = 0; idx < NUM_LEDS_ONE_SIDE; idx++) {
-        memmove(&leds_all[NUM_LEDS_ONE_SIDE * 2 + idx],
-                &leds[NUM_LEDS_ONE_SIDE + 1], sizeof(CRGB));
-      }
-      // Left side
-      for (uint8_t idx = 0; idx < NUM_LEDS_ONE_SIDE; idx++) {
-        memmove(&leds_all[NUM_LEDS_ONE_SIDE * 3 + idx],
-                &leds[NUM_LEDS_ONE_SIDE - idx], sizeof(CRGB));
-      }
-
+      memmove(&leds_all[L], &leds[1], L * sizeof(CRGB));  // Right
       break;
   }
 
