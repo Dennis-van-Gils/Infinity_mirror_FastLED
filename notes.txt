@@ -13,3 +13,7 @@ CLK - White   DIO 3
 DAT - Blue    DIO 2
 GND - Black  
 
+API reference and code tips:
+https://github.com/FastLED/FastLED/wiki
+http://fastled.io/docs/3.1/
+https://www.reddit.com/r/arduino/comments/4twynx/understanding_wave_fastled_wave_functions/
