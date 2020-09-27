@@ -1,45 +1,171 @@
 /* Infinity mirror
 
-L: number of LEDs on one side (CONSTANT, 13)
-N: number of LEDs on the full strip (CONSTANT, 4 * 13 = 52)
-s: number of LEDs of the current segmenting subset (variable)
-
 Author: Dennis van Gils
 Date: 26-09-2020
 */
 
 #include <Arduino.h>
-#include <FastLED.h>
 
 #include "DvG_SerialCommand.h"
-#define Ser Serial
-DvG_SerialCommand sc(Ser);  // Instantiate serial command listener
+#include "FastLED.h"
+#include "Streaming.h"
 
 FASTLED_USING_NAMESPACE
+
+#define Ser Serial
+DvG_SerialCommand sc(Ser);  // Instantiate serial command listener
 
 #define LED_TYPE APA102
 #define COLOR_ORDER BGR
 #define DATA_PIN PIN_SPI_MOSI
 #define CLK_PIN PIN_SPI_SCK
 
-#define L 13
-#define N (4 * L)
-uint16_t s = L;
-CRGB leds[N];       // subset
-CRGB leds_flip[N];  // subset flipped
-CRGB leds_all[N];   // full strip
+#define L 13        // Number of LEDs of one side
+#define N (4 * L)   // Number of LEDs of the full strip (4 * 13 = 52)
+uint16_t s = N;     // Number of LEDs of the current segmenting subset
+CRGB leds[N];       // LED data: subset
+CRGB leds_flip[N];  // LED data: subset flipped
+CRGB leds_all[N];   // LED data: full strip
+uint16_t idx;       // LED position index used in many for-loops
 
-#define BRIGHTNESS 64          // 128
+#define CRGB_SIZE   sizeof(CRGB)
+#define CRGB_SIZE_L (L * CRGB_SIZE)
+
+#define BRIGHTNESS 128         // 128
 #define FRAMES_PER_SECOND 120  // 120
 
-// List of patterns to cycle through.  Each is defined as a separate function
-// below.
-uint8_t gCurrentPatternNumber = 0;  // Index number of which pattern is current
-uint8_t gHue = 0;  // rotating "base color" used by many of the patterns
-
-typedef void (*SimplePatternList[])();
-
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
+/*-----------------------------------------------------------------------------
+  Patterns
+------------------------------------------------------------------------------*/
+
+// List of patterns to cycle through
+typedef void (*PatternList[])();
+uint8_t iPattern = 0;  // Index number of the current pattern
+uint8_t iHue = 0;      // Rotating "base color" used by many of the patterns
+
+void rainbow() {
+  // FastLED's built-in rainbow generator
+  fill_rainbow(leds, s, iHue, 255 / (s - 1));
+}
+
+void sinelon() {
+  // A colored dot sweeping back and forth, with fading trails
+  fadeToBlackBy(leds, s, 4);
+  idx = beatsin16(13, 0, s);
+  leds[idx] += CHSV(iHue, 255, 255);  // iHue, 255, 192
+}
+
+void beating() {
+  // Colored stripes pulsing at a defined beats-per-minute
+  CRGBPalette16 palette = PartyColors_p;  // RainbowColors_p; // PartyColors_p;
+  uint8_t bpm = 30;
+  uint8_t beat = beatsin8(bpm, 64, 255);
+  for (idx = 0; idx < s; idx++) {
+    leds[idx] = ColorFromPalette(
+      palette, iHue + 128. / (s - 1) * idx, beat + 127. / (s - 1) * idx
+    );
+  }
+}
+
+void juggle() {
+  // 8 colored dots, weaving in and out of sync with each other
+  byte dothue = 0;
+  fadeToBlackBy(leds, s, 20);
+  for (int i = 0; i < 8; i++) {
+    leds[beatsin16(i + 7, 0, s - 1)] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
+}
+
+void full_white() {
+  fill_solid(leds, N, CRGB::White);
+}
+
+void strobe() {
+  if (iHue % 16) {
+    fill_solid(leds, s, CRGB::Black);
+  } else {
+    CRGBPalette16 palette = PartyColors_p;  // PartyColors_p;
+    for (idx = 0; idx < s; idx++) {           // 9948
+      leds[idx] = ColorFromPalette(
+        palette, iHue + (idx * 2), iHue + (idx * 10)
+      );
+    }
+    // fill_solid(leds, s, CRGB::White);
+  }
+}
+
+void dennis() {
+  fadeToBlackBy(leds, s, 16);
+  idx = beatsin16(15, 0, s - 1);
+  // leds[idx] = CRGB::Blue;
+  // leds[s - idx - 1] = CRGB::Blue;
+  leds[idx] = CRGB::Red;
+  leds[s - idx - 1] = CRGB::OrangeRed;
+}
+
+void test_pattern() {
+  for (idx = 0; idx < s; idx++) {
+    leds[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
+  }
+  leds[0] = CRGB::Red;
+  leds[s - 1] = CRGB::Green;
+}
+
+//PatternList pattern_list = {rainbow, sinelon, juggle, bpm};
+//PatternList pattern_list = {sinelon, bpm, rainbow};
+//PatternList pattern_list = {dennis};
+PatternList pattern_list = {
+  rainbow, sinelon, beating, juggle, dennis, test_pattern
+};
+
+void next_pattern() {
+  iPattern = (iPattern + 1) % ARRAY_SIZE(pattern_list);
+  Ser << "pattern: " << iPattern << endl;
+}
+
+/*-----------------------------------------------------------------------------
+  Segment styles
+------------------------------------------------------------------------------*/
+
+enum SegmentStyles {
+  FULL_STRIP,
+  COPIED_SIDES,
+  PERIO_OPP_CORNERS_N4,
+  PERIO_OPP_CORNERS_N2,
+  UNI_DIR_SIDE2SIDE,
+  BI_DIR_SIDE2SIDE,
+  HALFWAY_PERIO_SPLIT_N2,
+  EOL  // End of list
+};
+
+const char *segment_names[] = {"Full strip",
+                               "Copied sides",
+                               "Periodic opposite corners, N=4",
+                               "Periodic opposite corners, N=2",
+                               "Uni-directional side-to-side",
+                               "Bi-directional side-to-side",
+                               "Half-way periodic split, N=2",
+                               "EOL"};
+
+SegmentStyles segment_style = SegmentStyles::FULL_STRIP;
+
+void next_segment_style() {
+  int style_int = segment_style;
+  style_int = (style_int + 1) % int(SegmentStyles::EOL);
+  segment_style = static_cast<SegmentStyles>(style_int);
+
+  Ser << int(segment_style) << ": " << segment_names[int(segment_style)]
+      << endl;
+}
+
+void calc_leds_flip() {
+  for (idx = 0; idx < s; idx++) {
+    memmove(&leds_flip[idx], &leds[s - idx - 1], CRGB_SIZE);
+  }
+}
 
 /*-----------------------------------------------------------------------------
   setup
@@ -47,7 +173,7 @@ typedef void (*SimplePatternList[])();
 
 void setup() {
   Ser.begin(9600);
-  delay(3000);  // Delay for recovery FASTLED
+  delay(3000);  // Delay for recovery FastLED
 
   FastLED
       .addLeds<LED_TYPE, DATA_PIN, CLK_PIN, COLOR_ORDER, DATA_RATE_MHZ(1)>(
@@ -58,80 +184,6 @@ void setup() {
 
   // IR distance sensor
   analogReadResolution(16);
-}
-
-/*-----------------------------------------------------------------------------
-  Patterns
-------------------------------------------------------------------------------*/
-
-void rainbow() {
-  // FastLED's built-in rainbow generator
-  fill_rainbow(leds, s, gHue,
-               255 / s);  // leds, s, gHue, 4 or 26 or 39
-}
-
-void sinelon() {
-  // A colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy(leds, s, 4);
-  int pos = beatsin16(13, 0, s);
-  leds[pos] += CHSV(gHue, 255, 255);  // gHue, 255, 192
-}
-
-void bpm() {
-  // Colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint8_t BeatsPerMinute = 26;
-  CRGBPalette16 palette = PartyColors_p;  // RainbowColors_p;//PartyColors_p;
-  uint8_t beat = beatsin8(0, BeatsPerMinute, 52);  //  BeatsPerMinute, 64, 255
-  for (int i = 0; i < s; i++) {
-    leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 1));
-  }
-}
-
-void juggle() {
-  // 8 colored dots, weaving in and out of sync with each other
-  fadeToBlackBy(leds, s, 20);
-  byte dothue = 0;
-  for (int i = 0; i < 8; i++) {
-    leds[beatsin16(i + 7, 0, s)] |= CHSV(dothue, 200, 255);
-    dothue += 32;
-  }
-}
-
-void full_white() { fill_solid(leds, N, CRGB::White); }
-
-void strobe() {
-  if (gHue % 16) {
-    fill_solid(leds, s, CRGB::Black);
-  } else {
-    CRGBPalette16 palette = PartyColors_p;  // PartyColors_p;
-    for (int i = 0; i < s; i++) {           // 9948
-      leds[i] = ColorFromPalette(palette, gHue + (i * 2), gHue + (i * 10));
-    }
-    // fill_solid(leds, s, CRGB::White);
-  }
-}
-
-void dennis() {
-  fadeToBlackBy(leds, s, 16);
-  int pos = beatsin16(15, 0, s - 1);
-  // leds[pos] = CRGB::Blue;
-  // leds[s - pos - 1] = CRGB::Blue;
-  leds[pos] = CRGB::Red;
-  leds[s - pos - 1] = CRGB::OrangeRed;
-}
-
-/*
-SimplePatternList gPatterns = {
-    rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm};
-SimplePatternList gPatterns = {rainbow, rainbowWithGlitter, confetti, sinelon,
-                               juggle};
-*/
-// SimplePatternList gPatterns = {sinelon, bpm, rainbow};
-// SimplePatternList gPatterns = {dennis};
-SimplePatternList gPatterns = {sinelon};
-
-void nextPattern() {
-  gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE(gPatterns);
 }
 
 /*-----------------------------------------------------------------------------
@@ -147,11 +199,17 @@ void loop() {
 
     if (strcmp(strCmd, "id?") == 0) {
       Ser.println("Arduino, Infinity mirror");
+
+    } else if (strcmp(strCmd, "s") == 0) {
+      next_segment_style();
+
+    } else if (strcmp(strCmd, "p") == 0) {
+      next_pattern();
     }
   }
 
   // Call the current pattern function
-  gPatterns[gCurrentPatternNumber]();
+  pattern_list[iPattern]();
 
   /* IR distance sensor
     Sharp 2Y0A02
@@ -168,11 +226,22 @@ void loop() {
   }
 
   // Perform LED-strip segmenting
-  uint16_t idx;
-  uint16_t num_bytes;
-  static uint8_t segmenting_style = 5;
-  switch (segmenting_style) {
-    case 0:
+  switch (segment_style) {
+    case SegmentStyles::FULL_STRIP:
+      /* Full strip, no segmenting
+
+          L K J I
+        M         H
+        N         G
+        O         F
+        P         E
+          A B C D
+      */
+      s = N;
+      memmove(&leds_all[0], &leds[0], N * CRGB_SIZE);
+      break;
+
+    case SegmentStyles::COPIED_SIDES:
       /* Copied sides
 
           D C B A
@@ -183,14 +252,13 @@ void loop() {
           A B C D
       */
       s = L;
-      num_bytes = L * sizeof(CRGB);
-      memmove(&leds_all[0], &leds[0], num_bytes);      // bottom
-      memmove(&leds_all[L], &leds[0], num_bytes);      // right
-      memmove(&leds_all[L * 2], &leds[0], num_bytes);  // top
-      memmove(&leds_all[L * 3], &leds[0], num_bytes);  // left
+      memmove(&leds_all[0]    , &leds[0], CRGB_SIZE_L);  // bottom
+      memmove(&leds_all[L]    , &leds[0], CRGB_SIZE_L);  // right
+      memmove(&leds_all[L * 2], &leds[0], CRGB_SIZE_L);  // top
+      memmove(&leds_all[L * 3], &leds[0], CRGB_SIZE_L);  // left
       break;
 
-    case 1:
+    case SegmentStyles::PERIO_OPP_CORNERS_N4:
       /* Periodic opposite corners, N = 4
 
           D C B A
@@ -201,18 +269,14 @@ void loop() {
           A B C D
       */
       s = L;
-      for (idx = 0; idx < s; idx++) {
-        memmove(&leds_flip[idx], &leds[s - idx - 1], sizeof(CRGB));
-      }
-
-      num_bytes = L * sizeof(CRGB);
-      memmove(&leds_all[0], &leds[0], num_bytes);           // bottom
-      memmove(&leds_all[L], &leds_flip[0], num_bytes);      // right
-      memmove(&leds_all[L * 2], &leds[0], num_bytes);       // top
-      memmove(&leds_all[L * 3], &leds_flip[0], num_bytes);  // left
+      calc_leds_flip();
+      memmove(&leds_all[0]    , &leds[0]     , CRGB_SIZE_L);  // bottom
+      memmove(&leds_all[L]    , &leds_flip[0], CRGB_SIZE_L);  // right
+      memmove(&leds_all[L * 2], &leds[0]     , CRGB_SIZE_L);  // top
+      memmove(&leds_all[L * 3], &leds_flip[0], CRGB_SIZE_L);  // left
       break;
 
-    case 2:
+    case SegmentStyles::PERIO_OPP_CORNERS_N2:
       /* Periodic opposite corners, N = 2
 
           E F G H
@@ -223,13 +287,13 @@ void loop() {
           A B C D
       */
       s = L * 2;
-      memmove(&leds_all[0], &leds[0], s * sizeof(CRGB));  // bottom & right
-      for (idx = 0; idx < s; idx++) {                     // top & left
-        memmove(&leds_all[L * 2 + idx], &leds[s - idx - 1], sizeof(CRGB));
+      memmove(&leds_all[0], &leds[0], s * CRGB_SIZE);  // bottom & right
+      for (idx = 0; idx < s; idx++) {                  // top & left
+        memmove(&leds_all[L * 2 + idx], &leds[s - idx - 1], CRGB_SIZE);
       }
       break;
 
-    case 3:
+    case SegmentStyles::UNI_DIR_SIDE2SIDE:
       /* Uni-directional side-to-side
 
           F F F F
@@ -241,14 +305,14 @@ void loop() {
       */
       s = L + 2;
       for (idx = 0; idx < L; idx++) {
-        memmove(&leds_all[idx], &leds[0], sizeof(CRGB));              // bottom
-        memmove(&leds_all[L * 2 + idx], &leds[L + 1], sizeof(CRGB));  // top
-        memmove(&leds_all[L * 3 + idx], &leds[L - idx], sizeof(CRGB));  // left
+        memmove(&leds_all[idx]        , &leds[0]      , CRGB_SIZE);  // bottom
+        memmove(&leds_all[L * 2 + idx], &leds[L + 1]  , CRGB_SIZE);  // top
+        memmove(&leds_all[L * 3 + idx], &leds[L - idx], CRGB_SIZE);  // left
       }
-      memmove(&leds_all[L], &leds[1], L * sizeof(CRGB));  // right
+      memmove(&leds_all[L], &leds[1], CRGB_SIZE_L);  // right
       break;
 
-    case 4:
+    case SegmentStyles::BI_DIR_SIDE2SIDE:
       /* Bi-directional side-to-side
 
           A A A A
@@ -264,16 +328,15 @@ void loop() {
       // L = 6 -> s = 4
       // L = 7 -> s = 5
       for (idx = 0; idx < L; idx++) {
-        memmove(&leds_all[idx], &leds[0], sizeof(CRGB));  // bottom
+        memmove(&leds_all[idx]    , &leds[0], CRGB_SIZE);                // bottom
         memmove(&leds_all[L + idx], &leds[(idx < (L / 2) ? idx + 1 : L - idx)],
-                sizeof(CRGB));                                    // right
-        memmove(&leds_all[L * 2 + idx], &leds[0], sizeof(CRGB));  // top
-        memmove(&leds_all[L * 3 + idx], &leds_all[L + idx],
-                sizeof(CRGB));  // left
+                CRGB_SIZE);                                              // right
+        memmove(&leds_all[L * 2 + idx], &leds[0]          , CRGB_SIZE);  // top
+        memmove(&leds_all[L * 3 + idx], &leds_all[L + idx], CRGB_SIZE);  // left
       }
       break;
 
-    case 5:
+    case SegmentStyles::HALFWAY_PERIO_SPLIT_N2:
       /* Half-way periodic split, N = 2
 
           B A A B
@@ -282,30 +345,24 @@ void loop() {
         D         D
         C         C
           B A A B
-
-        2 3 4 5    6 7 8 9   10111213   1415 0 1
-        A B C D    D C B A    A B C D    D C B A
-
-        2 3 4 5 6  7 8 91011 1213141516 171819 0 1
-        A B C D E  F E D C B  A B C D E  F E D C B
       */
       s = ((L + 1) / 2) * 2;  // Note: Relies on integer math! No residuals.
       // L = 4 -> s = 4
       // L = 5 -> s = 6
       // L = 6 -> s = 6
       // L = 7 -> s = 8
-      for (idx = 0; idx < s; idx++) {
-        memmove(&leds_flip[idx], &leds[s - idx - 1], sizeof(CRGB));
-      }
+      calc_leds_flip();
+      memmove(&leds_all[0]        , &leds_flip[s / 2], L / 2 * CRGB_SIZE);  // bottom-left
+      memmove(&leds_all[L / 2]    , &leds[0]         , CRGB_SIZE_L);        // bottom-right & right-bottom
+      memmove(&leds_all[L + L / 2], &leds_flip[0]    , s / 2 * CRGB_SIZE);  // right-top
+      memmove(&leds_all[L * 2]    , &leds_all[0]     , CRGB_SIZE_L);        // top
+      memmove(&leds_all[L * 3]    , &leds_all[L]     , CRGB_SIZE_L);        // left
+      break;
 
-      memmove(&leds_all[0], &leds_flip[s / 2],
-              L / 2 * sizeof(CRGB));  // bottom-left
-      memmove(&leds_all[L / 2], &leds[0],
-              L * sizeof(CRGB));  // bottom-right & right-bottom
-      memmove(&leds_all[L + L / 2], &leds_flip[0],
-              s / 2 * sizeof(CRGB));                              // right-top
-      memmove(&leds_all[L * 2], &leds_all[0], L * sizeof(CRGB));  // top
-      memmove(&leds_all[L * 3], &leds_all[L], L * sizeof(CRGB));  // left
+    default:
+      /* Full strip, no segmenting */
+      s = N;
+      memmove(&leds_all[0], &leds[0], N * CRGB_SIZE);
       break;
   }
 
@@ -316,15 +373,7 @@ void loop() {
   FastLED.delay(1000 / FRAMES_PER_SECOND);
 
   // Periodic updates
-  EVERY_N_MILLISECONDS(30) { gHue++; }
-  // EVERY_N_SECONDS(24) { nextPattern(); }
-
-  //*
-  EVERY_N_SECONDS(10) {
-    segmenting_style++;
-    if (segmenting_style > 5) {
-      segmenting_style = 0;
-    }
-  }
-  //*/
+  EVERY_N_MILLISECONDS(30) { iHue++; }
+  // EVERY_N_SECONDS(24) { next_pattern(); }
+  // EVERY_N_SECONDS(10) { next_segment_style(); }
 }
