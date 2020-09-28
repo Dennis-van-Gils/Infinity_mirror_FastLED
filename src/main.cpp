@@ -6,6 +6,7 @@ Date: 26-09-2020
 
 #include <Arduino.h>
 
+#include "DvG_ECG_simulation.h"
 #include "DvG_SerialCommand.h"
 #include "FastLED.h"
 #include "Streaming.h"
@@ -31,10 +32,14 @@ uint16_t idx;       // LED position index used in many for-loops
 #define CRGB_SIZE   sizeof(CRGB)
 #define CRGB_SIZE_L (L * CRGB_SIZE)
 
-#define BRIGHTNESS 128         // 128
+#define BRIGHTNESS 64         // 128
 #define FRAMES_PER_SECOND 120  // 120
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
+// ECG simulation
+#define ECG_N_SMP 100
+float ecg_wave[ECG_N_SMP];
 
 /*-----------------------------------------------------------------------------
   Patterns
@@ -44,6 +49,7 @@ uint16_t idx;       // LED position index used in many for-loops
 typedef void (*PatternList[])();
 uint8_t iPattern = 0;  // Index number of the current pattern
 uint8_t iHue = 0;      // Rotating "base color" used by many of the patterns
+uint16_t ecg_wave_idx = 0;
 
 void rainbow() {
   // FastLED's built-in rainbow generator
@@ -57,11 +63,11 @@ void sinelon() {
   leds[idx] += CHSV(iHue, 255, 255);  // iHue, 255, 192
 }
 
-void beating() {
+void bpm() {
   // Colored stripes pulsing at a defined beats-per-minute
   CRGBPalette16 palette = PartyColors_p;  // RainbowColors_p; // PartyColors_p;
-  uint8_t bpm = 30;
-  uint8_t beat = beatsin8(bpm, 64, 255);
+  uint8_t bpm_ = 30;
+  uint8_t beat = beatsin8(bpm_, 64, 255);
   for (idx = 0; idx < s; idx++) {
     leds[idx] = ColorFromPalette(
       palette, iHue + 128. / (s - 1) * idx, beat + 127. / (s - 1) * idx
@@ -114,11 +120,51 @@ void test_pattern() {
   leds[s - 1] = CRGB::Green;
 }
 
+void heart_beat() {
+  uint8_t iTry = 4;
+
+  switch (iTry) {
+    case 1:
+      fadeToBlackBy(leds, s, 8);
+      //idx = ecg_wave_idx * s / (ECG_N_SMP - 1);
+      idx = round((1 - ecg_wave[ecg_wave_idx]) * (s - 1));
+      leds[idx] += CHSV(CRGB::Red, 255, uint8_t(ecg_wave[ecg_wave_idx] * 200));
+      break;
+
+    case 2:
+      fadeToBlackBy(leds, s, 8);
+      for (idx = 0; idx < s; idx++) {
+          leds[idx] += CHSV(CRGB::Red, 255, 0 + uint8_t(ecg_wave[ecg_wave_idx] * 100));
+      }
+      break;
+
+    case 3:
+      fadeToBlackBy(leds, s, 8);
+      for (idx = 0; idx < s; idx++) {
+        uint8_t intens = round(ecg_wave[ecg_wave_idx] * 100);
+        if (intens > 30) {
+          leds[idx] += CHSV(HUE_RED, 255, intens);
+        }
+      }
+      break;
+
+    case 4:
+      fadeToBlackBy(leds, s, 8);
+      for (idx = 0; idx < s; idx++) {
+        uint8_t intens = round(ecg_wave[ecg_wave_idx] * 100);
+        if (intens > 15) {
+          leds[idx] += CHSV(HUE_RED, 255, intens);
+        }
+      }
+      break;
+  }
+}
+
 //PatternList pattern_list = {rainbow, sinelon, juggle, bpm};
 //PatternList pattern_list = {sinelon, bpm, rainbow};
 //PatternList pattern_list = {dennis};
 PatternList pattern_list = {
-  rainbow, sinelon, beating, juggle, dennis, test_pattern
+  heart_beat, rainbow, sinelon, bpm, juggle, dennis, test_pattern
 };
 
 void next_pattern() {
@@ -150,7 +196,7 @@ const char *segment_names[] = {"Full strip",
                                "Half-way periodic split, N=2",
                                "EOL"};
 
-SegmentStyles segment_style = SegmentStyles::FULL_STRIP;
+SegmentStyles segment_style = SegmentStyles::BI_DIR_SIDE2SIDE;
 
 void next_segment_style() {
   int style_int = segment_style;
@@ -172,8 +218,17 @@ void calc_leds_flip() {
 ------------------------------------------------------------------------------*/
 
 void setup() {
+  uint32_t tick = millis();
   Ser.begin(9600);
-  delay(3000);  // Delay for recovery FastLED
+
+  // ECG simulation
+  generate_ECG(ecg_wave, ECG_N_SMP); // data is scaled [0 - 1]
+  Ser.println("ECG ready");
+
+  // Ensure a minimum delay for recovery of FastLED
+  while (millis() - tick < 3000) {
+    delay(10);
+  }
 
   FastLED
       .addLeds<LED_TYPE, DATA_PIN, CLK_PIN, COLOR_ORDER, DATA_RATE_MHZ(1)>(
@@ -215,10 +270,9 @@ void loop() {
     Sharp 2Y0A02
     20 - 150 cm --> ~2.5 - ~0.4 V
   */
-  static float A0_V = 0.;
   static bool IR_switch = false;
   EVERY_N_MILLISECONDS(100) {
-    A0_V = analogRead(PIN_A0) / 65535. * 3.3;
+    float A0_V = analogRead(PIN_A0) / 65535. * 3.3;
     IR_switch = (A0_V > 2);
   }
   if (IR_switch) {
@@ -374,6 +428,7 @@ void loop() {
 
   // Periodic updates
   EVERY_N_MILLISECONDS(30) { iHue++; }
+  EVERY_N_MILLISECONDS(20) { ecg_wave_idx = (ecg_wave_idx + 1) % ECG_N_SMP; }
   // EVERY_N_SECONDS(24) { next_pattern(); }
   // EVERY_N_SECONDS(10) { next_segment_style(); }
 }
