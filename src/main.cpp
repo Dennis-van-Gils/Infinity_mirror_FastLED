@@ -11,6 +11,8 @@ Date: 26-09-2020
 #include "FastLED.h"
 #include "Streaming.h"
 
+#include "DvG_LED_Segmentor.h"
+
 FASTLED_USING_NAMESPACE
 
 #define Ser Serial
@@ -40,6 +42,8 @@ uint16_t idx;       // LED position index used in many for-loops
 // ECG simulation
 #define ECG_N_SMP 100
 float ecg_wave[ECG_N_SMP];
+
+LEDStripSegmentor test;
 
 /*-----------------------------------------------------------------------------
   Patterns
@@ -260,6 +264,9 @@ void loop() {
 
     } else if (strcmp(strCmd, "p") == 0) {
       next_pattern();
+
+    } else {
+      Ser.println(CRGB_SIZE);
     }
   }
 
@@ -419,6 +426,8 @@ void loop() {
       memmove(&leds_all[0], &leds[0], N * CRGB_SIZE);
       break;
   }
+
+  test.process(&leds, &leds_all);
 
   // Send out the LED data
   FastLED.show();
