@@ -13,6 +13,8 @@ CLK - White   DIO 3
 DAT - Blue    DIO 2
 GND - Black  
 
+Add a 1000µF (6.3V or higher) capacitor close to the strip between VCC and GND
+
 API reference and code tips:
 https://github.com/FastLED/FastLED/wiki
 http://fastled.io/docs/3.1/
