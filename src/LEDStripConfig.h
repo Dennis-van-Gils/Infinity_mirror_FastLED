@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 namespace LEDStripConfig {
-  // Number of LEDs of one side
+  // Number of LEDs at each side of the square mirror
   const int L = 13;
 
   // Number of LEDs of the full strip (4 * 13 = 52)

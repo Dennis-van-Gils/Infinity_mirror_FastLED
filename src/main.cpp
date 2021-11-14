@@ -48,24 +48,24 @@ LEDStripSegmentor test;
 ------------------------------------------------------------------------------*/
 
 // List of patterns to cycle through
-typedef void (*PatternList[])(uint32_t s);
+typedef void (*PatternList[])(uint16_t s);
 uint8_t iPattern = 0; // Index number of the current pattern
 uint8_t iHue = 0;     // Rotating "base color" used by many of the patterns
 uint16_t ecg_wave_idx = 0;
 
-void rainbow(uint32_t s) {
+void rainbow(uint16_t s) {
   // FastLED's built-in rainbow generator
   fill_rainbow(leds, s, iHue, 255 / (s - 1));
 }
 
-void sinelon(uint32_t s) {
+void sinelon(uint16_t s) {
   // A colored dot sweeping back and forth, with fading trails
   fadeToBlackBy(leds, s, 4);
   idx = beatsin16(13, 0, s);
   leds[idx] += CHSV(iHue, 255, 255); // iHue, 255, 192
 }
 
-void bpm(uint32_t s) {
+void bpm(uint16_t s) {
   // Colored stripes pulsing at a defined beats-per-minute
   CRGBPalette16 palette = PartyColors_p; // RainbowColors_p; // PartyColors_p;
   uint8_t bpm_ = 30;
@@ -76,7 +76,7 @@ void bpm(uint32_t s) {
   }
 }
 
-void juggle(uint32_t s) {
+void juggle(uint16_t s) {
   // 8 colored dots, weaving in and out of sync with each other
   byte dothue = 0;
   fadeToBlackBy(leds, s, 20);
@@ -86,9 +86,9 @@ void juggle(uint32_t s) {
   }
 }
 
-void full_white(uint32_t s) { fill_solid(leds, s, CRGB::White); }
+void full_white(uint16_t s) { fill_solid(leds, s, CRGB::White); }
 
-void strobe(uint32_t s) {
+void strobe(uint16_t s) {
   if (iHue % 16) {
     fill_solid(leds, s, CRGB::Black);
   } else {
@@ -101,7 +101,7 @@ void strobe(uint32_t s) {
   }
 }
 
-void dennis(uint32_t s) {
+void dennis(uint16_t s) {
   fadeToBlackBy(leds, s, 16);
   idx = beatsin16(15, 0, s - 1);
   // leds[idx] = CRGB::Blue;
@@ -110,7 +110,7 @@ void dennis(uint32_t s) {
   leds[s - idx - 1] = CRGB::OrangeRed;
 }
 
-void test_pattern(uint32_t s) {
+void test_pattern(uint16_t s) {
   for (idx = 0; idx < s; idx++) {
     leds[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
   }
@@ -118,22 +118,23 @@ void test_pattern(uint32_t s) {
   leds[s - 1] = CRGB::Green;
 }
 
-void heart_beat(uint32_t s) {
+void heart_beat(uint16_t s) {
   uint8_t iTry = 4;
 
   switch (iTry) {
     case 1:
+      // Nice with segment style 5
       fadeToBlackBy(leds, s, 8);
       // idx = ecg_wave_idx * s / (ECG_N_SMP - 1);
       idx = round((1 - ecg_wave[ecg_wave_idx]) * (s - 1));
-      leds[idx] += CHSV(CRGB::Red, 255, uint8_t(ecg_wave[ecg_wave_idx] * 200));
+      leds[idx] += CHSV(HUE_RED, 255, uint8_t(ecg_wave[ecg_wave_idx] * 200));
       break;
 
     case 2:
       fadeToBlackBy(leds, s, 8);
       for (idx = 0; idx < s; idx++) {
-        leds[idx] +=
-            CHSV(CRGB::Red, 255, 0 + uint8_t(ecg_wave[ecg_wave_idx] * 100));
+        uint8_t intens = round(ecg_wave[ecg_wave_idx] * 100);
+        leds[idx] += CHSV(HUE_RED, 255, 0 + intens);
       }
       break;
 
@@ -178,11 +179,6 @@ void setup() {
   uint32_t tick = millis();
   Ser.begin(9600);
 
-  for (idx = 0; idx < LEDStripConfig::N; idx++) {
-    leds[idx] = CRGB::White;
-    leds_all[idx] = CRGB::White;
-  }
-
   // ECG simulation
   generate_ECG(ecg_wave, ECG_N_SMP); // data is scaled [0 - 1]
   Ser.println("ECG ready");
@@ -191,6 +187,9 @@ void setup() {
   while (millis() - tick < 3000) {
     delay(10);
   }
+
+  fill_solid(leds, LEDStripConfig::N, CRGB::Black);
+  fill_solid(leds_all, LEDStripConfig::N, CRGB::Black);
 
   FastLED
       .addLeds<LED_TYPE, LEDStripConfig::DATA_PIN, LEDStripConfig::CLK_PIN,

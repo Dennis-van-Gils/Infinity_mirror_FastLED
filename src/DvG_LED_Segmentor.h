@@ -6,16 +6,6 @@
 #include "FastLED.h"
 #include "LEDStripConfig.h"
 
-/*
-#define L 13      // Number of LEDs of one side
-#define N (4 * L) // Number of LEDs of the full strip (4 * 13 = 52)
-uint16_t s = N;    // Number of LEDs of the current segmenting subset
-CRGB leds[N];      // LED data: subset
-CRGB leds_flip[N]; // LED data: subset flipped
-CRGB output[N];  // LED data: full strip
-uint16_t idx;      // LED position index used in many for-loops
-*/
-
 #define CRGB_SIZE sizeof(CRGB)
 #define CRGB_SIZE_L (LEDStripConfig::L * CRGB_SIZE)
 
@@ -42,15 +32,14 @@ const char *segment_names[] = {"Full strip",
 class LEDStripSegmentor {
 private:
   // Mirror and/or repeats an incoming LED pattern, 2 or 4 fold.
+  uint16_t idx; // LED position index used in many for-loops
+  int L = LEDStripConfig::L;
+  int N = LEDStripConfig::N;
+
   CRGB _input_flipped[LEDStripConfig::N]; // LED data: subset flipped
   SegmentStyles _style;
   uint16_t s; // numel_input
 
-  uint16_t idx; // LED position index used in many for-loops
-  // const int L = LEDStripConfig::L;
-  // const int N = LEDStripConfig::N;
-
-  // void calc_leds_flip(const CRGB (*input)[LEDStripConfig::N]) {
   void calc_leds_flip(const struct CRGB(*input)) {
     for (idx = 0; idx < s; idx++) {
       memmove(&_input_flipped[idx], &input[s - idx - 1], CRGB_SIZE);
@@ -58,43 +47,19 @@ private:
   }
 
 public:
-  LEDStripSegmentor() { set_style(SegmentStyles::FULL_STRIP); }
-
-  // void process(const CRGB (*input)[LEDStripConfig::N],
-  //              CRGB (*output)[LEDStripConfig::N]) {
+  LEDStripSegmentor() {
+    /* */
+    set_style(SegmentStyles::FULL_STRIP);
+  }
 
   void process(const struct CRGB(*input), struct CRGB(*output)) {
-
-    // struct CRGB *data
-    //  clang-format off
     /*
        `input`  contains the LED effect to be copied/mirrored, aka leds_effect
        `output` contains the calculated full LED strip       , aka leds_strip
-       `numel_input` can be smaller than LEDStripConfig::N and indicates where
-       the LED effect ends of the `input` array              , aka s
-
-       This class will operate on `leds_effect[]` and updated to `leds_strip[]`
     */
-    // clang-format on
-
-    // output[0]->setRGB(0, 255, 0);
 
     // Perform LED-strip segmenting
     switch (_style) {
-      case SegmentStyles::FULL_STRIP:
-        /* Full strip, no segmenting
-
-            L K J I
-          M         H
-          N         G
-          O         F
-          P         E
-            A B C D
-        */
-        // s = LEDStripConfig::N;
-        memmove(&output[0], &input[0], s * CRGB_SIZE);
-        break;
-
       case SegmentStyles::COPIED_SIDES:
         /* Copied sides
 
@@ -104,12 +69,13 @@ public:
           C         B
           D         A
             A B C D
+
+          s = L;
         */
-        // s = LEDStripConfig::L;
-        memmove(&output[0], &input[0], CRGB_SIZE_L);                 // bottom
-        memmove(&output[LEDStripConfig::L], &input[0], CRGB_SIZE_L); // right
-        memmove(&output[LEDStripConfig::L * 2], &input[0], CRGB_SIZE_L); // top
-        memmove(&output[LEDStripConfig::L * 3], &input[0], CRGB_SIZE_L); // left
+        memmove(&output[0], &input[0], CRGB_SIZE_L);     // bottom
+        memmove(&output[L], &input[0], CRGB_SIZE_L);     // right
+        memmove(&output[L * 2], &input[0], CRGB_SIZE_L); // top
+        memmove(&output[L * 3], &input[0], CRGB_SIZE_L); // left
         break;
 
       case SegmentStyles::PERIO_OPP_CORNERS_N4:
@@ -121,15 +87,14 @@ public:
           B         C
           A         D
             A B C D
+
+          s = L;
         */
-        // s = LEDStripConfig::L;
         calc_leds_flip(input);
-        memmove(&output[0], &input[0], CRGB_SIZE_L); // bottom
-        memmove(&output[LEDStripConfig::L], &_input_flipped[0],
-                CRGB_SIZE_L); // right
-        memmove(&output[LEDStripConfig::L * 2], &input[0], CRGB_SIZE_L); // top
-        memmove(&output[LEDStripConfig::L * 3], &_input_flipped[0],
-                CRGB_SIZE_L); // left
+        memmove(&output[0], &input[0], CRGB_SIZE_L);              // bottom
+        memmove(&output[L], &_input_flipped[0], CRGB_SIZE_L);     // right
+        memmove(&output[L * 2], &input[0], CRGB_SIZE_L);          // top
+        memmove(&output[L * 3], &_input_flipped[0], CRGB_SIZE_L); // left
         break;
 
       case SegmentStyles::PERIO_OPP_CORNERS_N2:
@@ -141,12 +106,12 @@ public:
           B         F
           A         E
             A B C D
+
+          s = L * 2;
         */
-        // s = LEDStripConfig::L * 2;
         memmove(&output[0], &input[0], s * CRGB_SIZE); // bottom & right
         for (idx = 0; idx < s; idx++) {                // top & left
-          memmove(&output[LEDStripConfig::L * 2 + idx], &input[s - idx - 1],
-                  CRGB_SIZE);
+          memmove(&output[L * 2 + idx], &input[s - idx - 1], CRGB_SIZE);
         }
         break;
 
@@ -159,16 +124,15 @@ public:
           C         C
           B         B
             A A A A
+
+          s = L + 2;
         */
-        // s = LEDStripConfig::L + 2;
-        for (idx = 0; idx < LEDStripConfig::L; idx++) {
-          memmove(&output[idx], &input[0], CRGB_SIZE); // bottom
-          memmove(&output[LEDStripConfig::L * 2 + idx],
-                  &input[LEDStripConfig::L + 1], CRGB_SIZE); // top
-          memmove(&output[LEDStripConfig::L * 3 + idx],
-                  &input[LEDStripConfig::L - idx], CRGB_SIZE); // left
+        for (idx = 0; idx < L; idx++) {
+          memmove(&output[idx], &input[0], CRGB_SIZE);               // bottom
+          memmove(&output[L * 2 + idx], &input[L + 1], CRGB_SIZE);   // top
+          memmove(&output[L * 3 + idx], &input[L - idx], CRGB_SIZE); // left
         }
-        memmove(&output[LEDStripConfig::L], &input[1], CRGB_SIZE_L); // right
+        memmove(&output[L], &input[1], CRGB_SIZE_L); // right
         break;
 
       case SegmentStyles::BI_DIR_SIDE2SIDE:
@@ -180,25 +144,19 @@ public:
           C         C
           B         B
             A A A A
+
+          s = (L + 1) / 2 + 1; // Note: Relies on integer math! No residuals.
+          L = 4 -> s = 3
+          L = 5 -> s = 4
+          L = 6 -> s = 4
+          L = 7 -> s = 5
         */
-        // s = (LEDStripConfig::L + 1) / 2 + 1; // Note: Relies on integer math!
-        // No residuals.
-        //  L = 4 -> s = 3
-        //  L = 5 -> s = 4
-        //  L = 6 -> s = 4
-        //  L = 7 -> s = 5
-        for (idx = 0; idx < LEDStripConfig::L; idx++) {
+        for (idx = 0; idx < L; idx++) {
           memmove(&output[idx], &input[0], CRGB_SIZE); // bottom
-          memmove(
-              &output[LEDStripConfig::L + idx],
-              &input[(idx < (LEDStripConfig::L / 2) ? idx + 1
-                                                    : LEDStripConfig::L - idx)],
-              CRGB_SIZE); // right
-          memmove(&output[LEDStripConfig::L * 2 + idx], &input[0],
-                  CRGB_SIZE); // top
-          memmove(&output[LEDStripConfig::L * 3 + idx],
-                  &output[LEDStripConfig::L + idx],
-                  CRGB_SIZE); // left
+          memmove(&output[L + idx], &input[(idx < (L / 2) ? idx + 1 : L - idx)],
+                  CRGB_SIZE);                                         // right
+          memmove(&output[L * 2 + idx], &input[0], CRGB_SIZE);        // top
+          memmove(&output[L * 3 + idx], &output[L + idx], CRGB_SIZE); // left
         }
         break;
 
@@ -211,29 +169,36 @@ public:
           D         D
           C         C
             B A A B
+
+          s = ((L + 1) / 2) * 2; // Note: Relies on integer math! No residuals.
+          L = 4 -> s = 4
+          L = 5 -> s = 6
+          L = 6 -> s = 6
+          L = 7 -> s = 8
         */
-        // s = ((LEDStripConfig::L + 1) / 2) * 2; // Note: Relies on integer
-        // math! No residuals.
-        //  L = 4 -> s = 4
-        //  L = 5 -> s = 6
-        //  L = 6 -> s = 6
-        //  L = 7 -> s = 8
+        // clang-format off
         calc_leds_flip(input);
-        memmove(&output[0], &_input_flipped[s / 2],
-                LEDStripConfig::L / 2 * CRGB_SIZE); // bottom-left
-        memmove(&output[LEDStripConfig::L / 2], &input[0],
-                CRGB_SIZE_L); // bottom-right & right-bottom
-        memmove(&output[LEDStripConfig::L + LEDStripConfig::L / 2],
-                &_input_flipped[0],
-                s / 2 * CRGB_SIZE); // right-top
-        memmove(&output[LEDStripConfig::L * 2], &output[0], CRGB_SIZE_L); // top
-        memmove(&output[LEDStripConfig::L * 3], &output[LEDStripConfig::L],
-                CRGB_SIZE_L); // left
+        memmove(&output[0], &_input_flipped[s / 2], L / 2 * CRGB_SIZE); // bottom-left
+        memmove(&output[L / 2], &input[0], CRGB_SIZE_L);                // bottom-right & right-bottom
+        memmove(&output[L + L / 2], &_input_flipped[0], s / 2 * CRGB_SIZE);                       // right-top
+        memmove(&output[L * 2], &output[0], CRGB_SIZE_L); // top
+        memmove(&output[L * 3], &output[L], CRGB_SIZE_L); // left
+        // clang-format on
         break;
 
+      case SegmentStyles::FULL_STRIP:
       default:
-        /* Full strip, no segmenting */
-        // s = LEDStripConfig::N;
+        /* Full strip, no segmenting
+
+            L K J I
+          M         H
+          N         G
+          O         F
+          P         E
+            A B C D
+
+          s = N;
+        */
         memmove(&output[0], &input[0], s * CRGB_SIZE);
         break;
     }
@@ -242,32 +207,27 @@ public:
   void set_style(SegmentStyles style) {
     _style = style;
     switch (_style) {
-      case SegmentStyles::FULL_STRIP:
-        s = LEDStripConfig::N;
-        break;
       case SegmentStyles::COPIED_SIDES:
-        s = LEDStripConfig::L;
+        s = L;
         break;
       case SegmentStyles::PERIO_OPP_CORNERS_N4:
-        s = LEDStripConfig::L;
+        s = L;
         break;
       case SegmentStyles::PERIO_OPP_CORNERS_N2:
-        s = LEDStripConfig::L * 2;
+        s = L * 2;
         break;
       case SegmentStyles::UNI_DIR_SIDE2SIDE:
-        s = LEDStripConfig::L + 2;
+        s = L + 2;
         break;
       case SegmentStyles::BI_DIR_SIDE2SIDE:
-        // Note: Relies on integer math! No residuals.
-        s = (LEDStripConfig::L + 1) / 2 + 1;
+        s = (L + 1) / 2 + 1;
         break;
       case SegmentStyles::HALFWAY_PERIO_SPLIT_N2:
-        // Note: Relies on integer math! No residuals.
-        s = ((LEDStripConfig::L + 1) / 2) * 2;
+        s = ((L + 1) / 2) * 2;
         break;
+      case SegmentStyles::FULL_STRIP:
       default:
-        /* Full strip, no segmenting */
-        s = LEDStripConfig::N;
+        s = N;
         break;
     }
   }
@@ -291,5 +251,5 @@ public:
     snprintf(buffer, 64, segment_names[int(_style)]);
   }
 
-  uint32_t get_s() { return s; }
+  uint16_t get_s() { return s; }
 };
