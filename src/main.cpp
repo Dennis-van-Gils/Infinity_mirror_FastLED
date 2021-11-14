@@ -19,9 +19,10 @@ FASTLED_USING_NAMESPACE
 #define Ser Serial
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
-uint16_t idx;                     // LED position index used in many for-loops
-CRGB leds[LEDStripConfig::N];     // LED data: subset of strip, effects
-CRGB leds_all[LEDStripConfig::N]; // LED data: full strip
+uint16_t idx; /* LED position index used in many for-loops */
+CRGB leds_effect[LEDStripConfig::N]; /* LED data, subset of the strip containing
+                                        the effects */
+CRGB leds_strip[LEDStripConfig::N];  /* LED data of the full strip */
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
@@ -43,14 +44,14 @@ uint16_t ecg_wave_idx = 0;
 
 void rainbow(uint16_t s) {
   // FastLED's built-in rainbow generator
-  fill_rainbow(leds, s, iHue, 255 / (s - 1));
+  fill_rainbow(leds_effect, s, iHue, 255 / (s - 1));
 }
 
 void sinelon(uint16_t s) {
   // A colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy(leds, s, 4);
+  fadeToBlackBy(leds_effect, s, 4);
   idx = beatsin16(13, 0, s);
-  leds[idx] += CHSV(iHue, 255, 255); // iHue, 255, 192
+  leds_effect[idx] += CHSV(iHue, 255, 255); // iHue, 255, 192
 }
 
 void bpm(uint16_t s) {
@@ -59,51 +60,51 @@ void bpm(uint16_t s) {
   uint8_t bpm_ = 30;
   uint8_t beat = beatsin8(bpm_, 64, 255);
   for (idx = 0; idx < s; idx++) {
-    leds[idx] = ColorFromPalette(palette, iHue + 128. / (s - 1) * idx,
-                                 beat + 127. / (s - 1) * idx);
+    leds_effect[idx] = ColorFromPalette(palette, iHue + 128. / (s - 1) * idx,
+                                        beat + 127. / (s - 1) * idx);
   }
 }
 
 void juggle(uint16_t s) {
   // 8 colored dots, weaving in and out of sync with each other
   byte dothue = 0;
-  fadeToBlackBy(leds, s, 20);
+  fadeToBlackBy(leds_effect, s, 20);
   for (int i = 0; i < 8; i++) {
-    leds[beatsin16(i + 7, 0, s - 1)] |= CHSV(dothue, 200, 255);
+    leds_effect[beatsin16(i + 7, 0, s - 1)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
 }
 
-void full_white(uint16_t s) { fill_solid(leds, s, CRGB::White); }
+void full_white(uint16_t s) { fill_solid(leds_effect, s, CRGB::White); }
 
 void strobe(uint16_t s) {
   if (iHue % 16) {
-    fill_solid(leds, s, CRGB::Black);
+    fill_solid(leds_effect, s, CRGB::Black);
   } else {
     CRGBPalette16 palette = PartyColors_p; // PartyColors_p;
     for (idx = 0; idx < s; idx++) {        // 9948
-      leds[idx] =
+      leds_effect[idx] =
           ColorFromPalette(palette, iHue + (idx * 2), iHue + (idx * 10));
     }
-    // fill_solid(leds, s, CRGB::White);
+    // fill_solid(leds_effect, s, CRGB::White);
   }
 }
 
 void dennis(uint16_t s) {
-  fadeToBlackBy(leds, s, 16);
+  fadeToBlackBy(leds_effect, s, 16);
   idx = beatsin16(15, 0, s - 1);
-  // leds[idx] = CRGB::Blue;
-  // leds[s - idx - 1] = CRGB::Blue;
-  leds[idx] = CRGB::Red;
-  leds[s - idx - 1] = CRGB::OrangeRed;
+  // leds_effect[idx] = CRGB::Blue;
+  // leds_effect[s - idx - 1] = CRGB::Blue;
+  leds_effect[idx] = CRGB::Red;
+  leds_effect[s - idx - 1] = CRGB::OrangeRed;
 }
 
 void test_pattern(uint16_t s) {
   for (idx = 0; idx < s; idx++) {
-    leds[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
+    leds_effect[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
   }
-  leds[0] = CRGB::Red;
-  leds[s - 1] = CRGB::Green;
+  leds_effect[0] = CRGB::Red;
+  leds_effect[s - 1] = CRGB::Green;
 }
 
 void heart_beat(uint16_t s) {
@@ -112,36 +113,37 @@ void heart_beat(uint16_t s) {
   switch (iTry) {
     case 1:
       // Nice with segment style 5
-      fadeToBlackBy(leds, s, 8);
+      fadeToBlackBy(leds_effect, s, 8);
       // idx = ecg_wave_idx * s / (ECG_N_SMP - 1);
       idx = round((1 - ecg_wave[ecg_wave_idx]) * (s - 1));
-      leds[idx] += CHSV(HUE_RED, 255, uint8_t(ecg_wave[ecg_wave_idx] * 200));
+      leds_effect[idx] +=
+          CHSV(HUE_RED, 255, uint8_t(ecg_wave[ecg_wave_idx] * 200));
       break;
 
     case 2:
-      fadeToBlackBy(leds, s, 8);
+      fadeToBlackBy(leds_effect, s, 8);
       for (idx = 0; idx < s; idx++) {
         uint8_t intens = round(ecg_wave[ecg_wave_idx] * 100);
-        leds[idx] += CHSV(HUE_RED, 255, 0 + intens);
+        leds_effect[idx] += CHSV(HUE_RED, 255, 0 + intens);
       }
       break;
 
     case 3:
-      fadeToBlackBy(leds, s, 8);
+      fadeToBlackBy(leds_effect, s, 8);
       for (idx = 0; idx < s; idx++) {
         uint8_t intens = round(ecg_wave[ecg_wave_idx] * 100);
         if (intens > 30) {
-          leds[idx] += CHSV(HUE_RED, 255, intens);
+          leds_effect[idx] += CHSV(HUE_RED, 255, intens);
         }
       }
       break;
 
     case 4:
-      fadeToBlackBy(leds, s, 8);
+      fadeToBlackBy(leds_effect, s, 8);
       for (idx = 0; idx < s; idx++) {
         uint8_t intens = round(ecg_wave[ecg_wave_idx] * 100);
         if (intens > 15) {
-          leds[idx] += CHSV(HUE_RED, 255, intens);
+          leds_effect[idx] += CHSV(HUE_RED, 255, intens);
         }
       }
       break;
@@ -176,13 +178,13 @@ void setup() {
     delay(10);
   }
 
-  fill_solid(leds, LEDStripConfig::N, CRGB::Black);
-  fill_solid(leds_all, LEDStripConfig::N, CRGB::Black);
+  fill_solid(leds_effect, LEDStripConfig::N, CRGB::Black);
+  fill_solid(leds_strip, LEDStripConfig::N, CRGB::Black);
 
   FastLED
       .addLeds<LEDStripConfig::LED_TYPE, LEDStripConfig::PIN_DATA,
                LEDStripConfig::PIN_CLK, LEDStripConfig::COLOR_ORDER,
-               DATA_RATE_MHZ(1)>(leds_all, LEDStripConfig::N)
+               DATA_RATE_MHZ(1)>(leds_strip, LEDStripConfig::N)
       .setCorrection(LEDStripConfig::COLOR_CORRECTION);
 
   FastLED.setBrightness(LEDStripConfig::BRIGHTNESS);
@@ -206,29 +208,19 @@ void loop() {
       Ser.println("Arduino, Infinity mirror");
 
     } else if (strcmp(strCmd, "]") == 0) {
-      test.next_style_in_list();
-
-      char style_descr[64] = {"\0"};
-      test.get_style_descr(style_descr);
-      Ser.print((int)test.get_style());
-      Ser.print(" - ");
-      Ser.println(style_descr);
+      test.next_style();
+      test.print_style_name(Ser);
 
     } else if (strcmp(strCmd, "[") == 0) {
-      test.prev_style_in_list();
-
-      char style_descr[64] = {"\0"};
-      test.get_style_descr(style_descr);
-      Ser.print((int)test.get_style());
-      Ser.print(" - ");
-      Ser.println(style_descr);
+      test.prev_style();
+      test.print_style_name(Ser);
 
     } else if (strcmp(strCmd, "p") == 0) {
       next_pattern();
     }
   }
 
-  // Call the current pattern function
+  // Calculate the current LED effect
   pattern_list[iPattern](test.get_s());
 
   /* IR distance sensor
@@ -244,10 +236,7 @@ void loop() {
     full_white(test.get_s());
   }
 
-  test.process(leds, leds_all);
-
-  // Send out the LED data
-  // FastLED.show();
+  test.process(leds_effect, leds_strip);
 
   // Keep the framerate modest and allow for brightness dithering.
   // Will also invoke FASTLED.show() - sending out the LED data - at least once.
