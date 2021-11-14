@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Author: Dennis van Gils
-Date: 26-09-2020
+Date: 14-11-2021
 */
 
 #include <Arduino.h>
