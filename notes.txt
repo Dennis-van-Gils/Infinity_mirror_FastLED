@@ -23,12 +23,3 @@ https://www.reddit.com/r/arduino/comments/4twynx/understanding_wave_fastled_wave
 MCU
 ----
 
-x) Implement global header to import with LED strip config inside, like
-   #ifndef LED_STRIP_CONFIG_H
-   #define LED_STRIP_CONFIG_H
-
-   #define L 13
-   #define N (4 * L)
-   etc
-   
-   #endif
