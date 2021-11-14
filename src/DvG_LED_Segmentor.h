@@ -44,24 +44,29 @@ private:
   // Mirror and/or repeats an incoming LED pattern, 2 or 4 fold.
   CRGB _input_flipped[LEDStripConfig::N]; // LED data: subset flipped
   SegmentStyles _style;
+  uint16_t s; // numel_input
 
   uint16_t idx; // LED position index used in many for-loops
   // const int L = LEDStripConfig::L;
   // const int N = LEDStripConfig::N;
 
-  void calc_leds_flip(const CRGB (*input)[LEDStripConfig::N]) {
+  // void calc_leds_flip(const CRGB (*input)[LEDStripConfig::N]) {
+  void calc_leds_flip(const struct CRGB(*input)) {
     for (idx = 0; idx < s; idx++) {
       memmove(&_input_flipped[idx], &input[s - idx - 1], CRGB_SIZE);
     }
   }
 
 public:
-  uint16_t s; // numel_input
-  LEDStripSegmentor() { s = set_style(SegmentStyles::FULL_STRIP); }
+  LEDStripSegmentor() { set_style(SegmentStyles::FULL_STRIP); }
 
-  void process(const CRGB (*input)[LEDStripConfig::N],
-               CRGB (*output)[LEDStripConfig::N]) {
-    // clang-format off
+  // void process(const CRGB (*input)[LEDStripConfig::N],
+  //              CRGB (*output)[LEDStripConfig::N]) {
+
+  void process(const struct CRGB(*input), struct CRGB(*output)) {
+
+    // struct CRGB *data
+    //  clang-format off
     /*
        `input`  contains the LED effect to be copied/mirrored, aka leds_effect
        `output` contains the calculated full LED strip       , aka leds_strip
@@ -234,7 +239,7 @@ public:
     }
   }
 
-  uint16_t set_style(SegmentStyles style) {
+  void set_style(SegmentStyles style) {
     _style = style;
     switch (_style) {
       case SegmentStyles::FULL_STRIP:
@@ -253,33 +258,31 @@ public:
         s = LEDStripConfig::L + 2;
         break;
       case SegmentStyles::BI_DIR_SIDE2SIDE:
-        s = (LEDStripConfig::L + 1) / 2 +
-            1; // Note: Relies on integer math! No residuals.
+        // Note: Relies on integer math! No residuals.
+        s = (LEDStripConfig::L + 1) / 2 + 1;
         break;
       case SegmentStyles::HALFWAY_PERIO_SPLIT_N2:
-        s = ((LEDStripConfig::L + 1) / 2) *
-            2; // Note: Relies on integer math! No residuals.
+        // Note: Relies on integer math! No residuals.
+        s = ((LEDStripConfig::L + 1) / 2) * 2;
         break;
       default:
         /* Full strip, no segmenting */
         s = LEDStripConfig::N;
         break;
     }
-
-    return s;
   }
 
-  uint16_t next_style_in_list() {
+  void next_style_in_list() {
     int style_int = _style;
     style_int = (style_int + 1) % int(SegmentStyles::EOL);
-    return set_style(static_cast<SegmentStyles>(style_int));
+    set_style(static_cast<SegmentStyles>(style_int));
   }
 
-  uint16_t prev_style_in_list() {
+  void prev_style_in_list() {
     int style_int = _style;
     style_int =
         (style_int + int(SegmentStyles::EOL) - 1) % int(SegmentStyles::EOL);
-    return set_style(static_cast<SegmentStyles>(style_int));
+    set_style(static_cast<SegmentStyles>(style_int));
   }
 
   SegmentStyles get_style() { return _style; }
@@ -287,14 +290,6 @@ public:
   void get_style_descr(char *buffer) {
     snprintf(buffer, 64, segment_names[int(_style)]);
   }
+
+  uint32_t get_s() { return s; }
 };
-
-/*
-int main() {
-  CRGB leds_strip[N]; // LED data: full strip
-  // LEDStripSegmentor test(&leds_strip);
-
-  LEDStripSegmentor test;
-  test.process(&leds_strip);
-}
-*/
