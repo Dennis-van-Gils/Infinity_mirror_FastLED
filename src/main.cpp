@@ -19,21 +19,9 @@ FASTLED_USING_NAMESPACE
 #define Ser Serial
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
-uint16_t idx; // LED position index used in many for-loops
-
-// uint16_t s =
-//     LEDStripConfig::L;        // Number of LEDs of the current segmenting
-//     subset
-//
-// CRGB leds[LEDStripConfig::N];     // LED data: subset
-CRGB leds[LEDStripConfig::N];     // LED data: subset
+uint16_t idx;                     // LED position index used in many for-loops
+CRGB leds[LEDStripConfig::N];     // LED data: subset of strip, effects
 CRGB leds_all[LEDStripConfig::N]; // LED data: full strip
-
-#define LED_TYPE APA102
-#define COLOR_ORDER BGR
-
-#define BRIGHTNESS 64         // 128
-#define FRAMES_PER_SECOND 120 // 120
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
@@ -192,11 +180,12 @@ void setup() {
   fill_solid(leds_all, LEDStripConfig::N, CRGB::Black);
 
   FastLED
-      .addLeds<LED_TYPE, LEDStripConfig::DATA_PIN, LEDStripConfig::CLK_PIN,
-               COLOR_ORDER, DATA_RATE_MHZ(1)>(leds_all, LEDStripConfig::N)
-      .setCorrection(TypicalLEDStrip);
+      .addLeds<LEDStripConfig::LED_TYPE, LEDStripConfig::PIN_DATA,
+               LEDStripConfig::PIN_CLK, LEDStripConfig::COLOR_ORDER,
+               DATA_RATE_MHZ(1)>(leds_all, LEDStripConfig::N)
+      .setCorrection(LEDStripConfig::COLOR_CORRECTION);
 
-  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.setBrightness(LEDStripConfig::BRIGHTNESS);
 
   // IR distance sensor
   analogReadResolution(16);
@@ -258,10 +247,11 @@ void loop() {
   test.process(leds, leds_all);
 
   // Send out the LED data
-  FastLED.show();
+  // FastLED.show();
 
-  // Keep the framerate modest
-  FastLED.delay(1000 / FRAMES_PER_SECOND);
+  // Keep the framerate modest and allow for brightness dithering.
+  // Will also invoke FASTLED.show() - sending out the LED data - at least once.
+  FastLED.delay(LEDStripConfig::DELAY);
 
   // Periodic updates
   EVERY_N_MILLISECONDS(30) { iHue++; }
