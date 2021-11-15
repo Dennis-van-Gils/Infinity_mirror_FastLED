@@ -221,7 +221,7 @@ void loop() {
   }
 
   // Calculate the current LED effect
-  pattern_list[iPattern](test.get_s());
+  pattern_list[iPattern](test.get_base_pattern_numel());
 
   /* IR distance sensor
     Sharp 2Y0A02
@@ -233,7 +233,7 @@ void loop() {
     IR_switch = (A0_V > 2);
   }
   if (IR_switch) {
-    full_white(test.get_s());
+    full_white(test.get_base_pattern_numel());
   }
 
   test.process(leds_effect, leds_strip);
@@ -246,5 +246,10 @@ void loop() {
   EVERY_N_MILLISECONDS(30) { iHue++; }
   EVERY_N_MILLISECONDS(20) { ecg_wave_idx = (ecg_wave_idx + 1) % ECG_N_SMP; }
   // EVERY_N_SECONDS(24) { next_pattern(); }
-  // EVERY_N_SECONDS(10) { next_segment_style(); }
+  /*
+  EVERY_N_SECONDS(10) {
+    test.next_style();
+    test.print_style_name(Ser);
+  }
+  */
 }

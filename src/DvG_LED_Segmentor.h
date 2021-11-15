@@ -4,10 +4,10 @@
 #include "LEDStripConfig.h"
 
 /*-----------------------------------------------------------------------------
-  Segment styles
+  Styles
 ------------------------------------------------------------------------------*/
 
-enum SegmentStyles {
+enum StyleEnum {
   FULL_STRIP,
   COPIED_SIDES,
   PERIO_OPP_CORNERS_N4,
@@ -30,7 +30,16 @@ const char *style_names[] = {"Full strip",
 /*-----------------------------------------------------------------------------
   LEDStripSegmentor
 --------------------------------------------------------------------------------
-  Mirror and/or repeats an incoming LED pattern, 2 or 4 fold
+  Mirror and/or repeats an incoming LED pattern, 2 or 4 fold.
+  Expects a layout like an infinity mirror with 4 equal sides of length L.
+
+         L
+     ----------
+     |        |
+   L |        | L
+     |        |
+     ----------
+         L
 */
 
 class LEDStripSegmentor {
@@ -40,8 +49,8 @@ private:
   uint32_t CRGB_SIZE = sizeof(CRGB);
   uint32_t CRGB_SIZE_L = LEDStripConfig::L * CRGB_SIZE;
 
-  SegmentStyles _style;
-  uint16_t s; // numel_input
+  StyleEnum _style;
+  uint16_t s; // = get_base_pattern_numel()
 
   CRGB in_flip[LEDStripConfig::N]; // Flipped `in` LED effect data
 
@@ -54,7 +63,7 @@ private:
 public:
   LEDStripSegmentor() {
     /* */
-    set_style(SegmentStyles::FULL_STRIP);
+    set_style(StyleEnum::FULL_STRIP);
   }
 
   /*---------------------------------------------------------------------------
@@ -63,14 +72,18 @@ public:
 
   void process(const struct CRGB(*in), struct CRGB(*out)) {
     /*
-       `in`  contains the LED effect data to be copied/mirrored, aka leds_effect
-       `out` contains the full LED strip data to be send out   , aka leds_strip
+    Args:
+       in : LED array containing the base pattern data to be copied/mirrored to
+            the rest of the full strip, using the currently selected style.
+            Aka `leds_effect`.
+       out: LED array containing the full LED strip data to be send out.
+            Aka `leds_strip`.
     */
     uint16_t idx; // LED position index used in many for-loops
 
     // Perform LED-strip segmenting
     switch (_style) {
-      case SegmentStyles::COPIED_SIDES:
+      case StyleEnum::COPIED_SIDES:
         /* Copied sides
 
             D C B A
@@ -90,7 +103,7 @@ public:
         // clang-format off
         break;
 
-      case SegmentStyles::PERIO_OPP_CORNERS_N4:
+      case StyleEnum::PERIO_OPP_CORNERS_N4:
         /* Periodic opposite corners, N = 4
 
             D C B A
@@ -111,7 +124,7 @@ public:
         // clang-format on
         break;
 
-      case SegmentStyles::PERIO_OPP_CORNERS_N2:
+      case StyleEnum::PERIO_OPP_CORNERS_N2:
         /* Periodic opposite corners, N = 2
 
             E F G H
@@ -129,7 +142,7 @@ public:
         }
         break;
 
-      case SegmentStyles::UNI_DIR_SIDE2SIDE:
+      case StyleEnum::UNI_DIR_SIDE2SIDE:
         /* Uni-directional side-to-side
 
             F F F F
@@ -151,7 +164,7 @@ public:
         // clang-format on
         break;
 
-      case SegmentStyles::BI_DIR_SIDE2SIDE:
+      case StyleEnum::BI_DIR_SIDE2SIDE:
         /* Bi-directional side-to-side
 
             A A A A
@@ -178,7 +191,7 @@ public:
         }
         break;
 
-      case SegmentStyles::HALFWAY_PERIO_SPLIT_N2:
+      case StyleEnum::HALFWAY_PERIO_SPLIT_N2:
         /* Half-way periodic split, N = 2
 
             B A A B
@@ -204,7 +217,7 @@ public:
         // clang-format on
         break;
 
-      case SegmentStyles::FULL_STRIP:
+      case StyleEnum::FULL_STRIP:
       default:
         /* Full strip, no segmenting
 
@@ -226,48 +239,47 @@ public:
     style
   ----------------------------------------------------------------------------*/
 
-  void set_style(SegmentStyles style) {
+  void set_style(StyleEnum style) {
     _style = style;
     switch (_style) {
-      case SegmentStyles::COPIED_SIDES:
+      case StyleEnum::COPIED_SIDES:
         s = L;
         break;
-      case SegmentStyles::PERIO_OPP_CORNERS_N4:
+      case StyleEnum::PERIO_OPP_CORNERS_N4:
         s = L;
         break;
-      case SegmentStyles::PERIO_OPP_CORNERS_N2:
+      case StyleEnum::PERIO_OPP_CORNERS_N2:
         s = L * 2;
         break;
-      case SegmentStyles::UNI_DIR_SIDE2SIDE:
+      case StyleEnum::UNI_DIR_SIDE2SIDE:
         s = L + 2;
         break;
-      case SegmentStyles::BI_DIR_SIDE2SIDE:
+      case StyleEnum::BI_DIR_SIDE2SIDE:
         s = (L + 1) / 2 + 1;
         break;
-      case SegmentStyles::HALFWAY_PERIO_SPLIT_N2:
+      case StyleEnum::HALFWAY_PERIO_SPLIT_N2:
         s = ((L + 1) / 2) * 2;
         break;
-      case SegmentStyles::FULL_STRIP:
+      case StyleEnum::FULL_STRIP:
       default:
         s = N;
         break;
     }
   }
 
-  SegmentStyles get_style() { return _style; }
+  StyleEnum get_style() { return _style; }
 
-  SegmentStyles next_style() {
+  StyleEnum next_style() {
     int style_int = _style;
-    style_int = (style_int + 1) % int(SegmentStyles::EOL);
-    set_style(static_cast<SegmentStyles>(style_int));
+    style_int = (style_int + 1) % int(StyleEnum::EOL);
+    set_style(static_cast<StyleEnum>(style_int));
     return _style;
   }
 
-  SegmentStyles prev_style() {
+  StyleEnum prev_style() {
     int style_int = _style;
-    style_int =
-        (style_int + int(SegmentStyles::EOL) - 1) % int(SegmentStyles::EOL);
-    set_style(static_cast<SegmentStyles>(style_int));
+    style_int = (style_int + int(StyleEnum::EOL) - 1) % int(StyleEnum::EOL);
+    set_style(static_cast<StyleEnum>(style_int));
     return _style;
   }
 
@@ -282,5 +294,10 @@ public:
     port.println(style_names[int(_style)]);
   }
 
-  uint16_t get_s() { return s; }
+  uint16_t get_base_pattern_numel() {
+    /* Return the number of elements making up the base pattern befitting the
+    current style.
+     */
+    return s;
+  }
 };
