@@ -6,12 +6,11 @@ Dennis van Gils
 
 #include <Arduino.h>
 
-#include "DvG_ECG_simulation.h"
-#include "DvG_SerialCommand.h"
 #include "FastLED.h"
-#include "Streaming.h"
 
+#include "DvG_ECG_simulation.h"
 #include "DvG_LEDStripSegmentor.h"
+#include "DvG_SerialCommand.h"
 #include "LEDStripConfig.h"
 
 FASTLED_USING_NAMESPACE
@@ -158,7 +157,8 @@ PatternList pattern_list = {heart_beat, rainbow, sinelon,     bpm,
 
 void next_pattern() {
   iPattern = (iPattern + 1) % ARRAY_SIZE(pattern_list);
-  Ser << "pattern: " << iPattern << endl;
+  Ser.print("pattern: ");
+  Ser.println(iPattern);
 }
 
 /*-----------------------------------------------------------------------------
