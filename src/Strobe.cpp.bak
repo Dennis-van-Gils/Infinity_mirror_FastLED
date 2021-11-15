@@ -1,37 +1,30 @@
-#include <Arduino.h>
 #include "FastLED.h"
+#include "LEDStripConfig.h"
+#include <Arduino.h>
 
 FASTLED_USING_NAMESPACE
 
 #if defined(FASTLED_VERSION) && (FASTLED_VERSION < 3001000)
-#warning "Requires FastLED 3.1 or later; check github for latest code."
+#  warning "Requires FastLED 3.1 or later; check github for latest code."
 #endif
 
-#define DATA_PIN 2
-#define CLK_PIN  3
-#define LED_TYPE APA102
-#define COLOR_ORDER BGR
-#define NUM_LEDS 60
-CRGB leds[NUM_LEDS];
-
-#define BRIGHTNESS 10
-
+#define BRIGHTNESS 180
 #define Ser Serial
 
-void setup() {
-  delay(200); // delay for recovery
+const uint16_t CRGB_SIZE_N = sizeof(CRGB) * LEDStripConfig::N;
+CRGB leds[LEDStripConfig::N];
 
+void setup() {
   Ser.begin(9600);
 
-  // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,
-                  DATA_PIN,
-                  CLK_PIN,
-                  COLOR_ORDER,
-                  DATA_RATE_MHZ(1)>
-                 (leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  // Ensure a minimum delay for recovery of FastLED
+  delay(3000);
 
-  // set master brightness control
+  FastLED
+      .addLeds<LEDStripConfig::LED_TYPE, LEDStripConfig::PIN_DATA,
+               LEDStripConfig::PIN_CLK, LEDStripConfig::COLOR_ORDER,
+               DATA_RATE_MHZ(1)>(leds, LEDStripConfig::N)
+      .setCorrection(LEDStripConfig::COLOR_CORRECTION);
   FastLED.setBrightness(BRIGHTNESS);
 
   // Clear LED strip
@@ -39,29 +32,16 @@ void setup() {
   FastLED.show();
 }
 
-float FPS = 1;          // flashes per second [Hz]
-uint32_t T_flash_update = round(1000./FPS);   // [ms]
-uint32_t T_flash_length = 1;                 // [ms]
-uint32_t T_update_show  = 1;                  // [ms]
+float FPS = 15;                               // flashes per second [Hz]
+uint32_t T_flash_update = round(1000. / FPS); // [ms]
+uint32_t T_flash_length = 20;                 // [ms]
 
-uint32_t prevMillis = 0;
-uint32_t prevMillis2 = 0;
 void loop() {
-  uint32_t curMillis = millis();
-
-  if (curMillis - prevMillis > T_flash_update) {
-    prevMillis = prevMillis + T_flash_update;    // strict interval keeping
-
-    fill_solid(leds, NUM_LEDS, CRGB::White);
+  EVERY_N_MILLISECONDS(T_flash_update) {
+    FastLED.showColor(CRGB::White);
     FastLED.show();
     delay(T_flash_length);
-    //FastLED.delay(T_flash_length);
-    FastLED.clear();
-    FastLED.show();
-  }
-
-  if (curMillis - prevMillis2 > T_update_show) {
-    prevMillis2 = curMillis;
+    FastLED.showColor(CRGB::Black);
     FastLED.show();
   }
 }
