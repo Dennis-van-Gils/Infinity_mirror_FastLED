@@ -9,9 +9,9 @@ Dennis van Gils
 #include "FastLED.h"
 
 #include "DvG_ECG_simulation.h"
-#include "DvG_LEDStripSegmentor.h"
 #include "DvG_SerialCommand.h"
 #include "LEDStripConfig.h"
+#include "LEDStripSegmentor.h"
 
 FASTLED_USING_NAMESPACE
 
