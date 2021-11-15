@@ -11,7 +11,7 @@ Date: 14-11-2021
 #include "FastLED.h"
 #include "Streaming.h"
 
-#include "DvG_LED_Segmentor.h"
+#include "DvG_LEDStripSegmentor.h"
 #include "LEDStripConfig.h"
 
 FASTLED_USING_NAMESPACE
@@ -30,7 +30,7 @@ CRGB leds_strip[LEDStripConfig::N];  /* LED data of the full strip */
 #define ECG_N_SMP 100
 float ecg_wave[ECG_N_SMP];
 
-LEDStripSegmentor test;
+LEDStripSegmentor segmentor;
 
 /*-----------------------------------------------------------------------------
   Patterns
@@ -208,12 +208,12 @@ void loop() {
       Ser.println("Arduino, Infinity mirror");
 
     } else if (strcmp(strCmd, "]") == 0) {
-      test.next_style();
-      test.print_style_name(Ser);
+      segmentor.next_style();
+      segmentor.print_style_name(Ser);
 
     } else if (strcmp(strCmd, "[") == 0) {
-      test.prev_style();
-      test.print_style_name(Ser);
+      segmentor.prev_style();
+      segmentor.print_style_name(Ser);
 
     } else if (strcmp(strCmd, "p") == 0) {
       next_pattern();
@@ -221,7 +221,7 @@ void loop() {
   }
 
   // Calculate the current LED effect
-  pattern_list[iPattern](test.get_base_pattern_numel());
+  pattern_list[iPattern](segmentor.get_base_pattern_numel());
 
   /* IR distance sensor
     Sharp 2Y0A02
@@ -233,10 +233,10 @@ void loop() {
     IR_switch = (A0_V > 2);
   }
   if (IR_switch) {
-    full_white(test.get_base_pattern_numel());
+    full_white(segmentor.get_base_pattern_numel());
   }
 
-  test.process(leds_effect, leds_strip);
+  segmentor.process(leds_effect, leds_strip);
 
   // Keep the framerate modest and allow for brightness dithering.
   // Will also invoke FASTLED.show() - sending out the LED data - at least once.
@@ -248,8 +248,8 @@ void loop() {
   // EVERY_N_SECONDS(24) { next_pattern(); }
   /*
   EVERY_N_SECONDS(10) {
-    test.next_style();
-    test.print_style_name(Ser);
+    segmentor.next_style();
+    segmentor.print_style_name(Ser);
   }
   */
 }
