@@ -1,3 +1,8 @@
+/* DvG_LEDStripSegmentor.h
+
+Dennis van Gils
+15-11-2021
+*/
 #include <Arduino.h>
 
 #include "FastLED.h"
@@ -52,7 +57,7 @@ private:
   StyleEnum _style;
   uint16_t s; // = get_base_pattern_numel()
 
-  CRGB in_flip[LEDStripConfig::N]; // Flipped `in` LED effect data
+  CRGB in_flip[LEDStripConfig::N]; // Flipped `in` base pattern data
 
   void calc_in_flip(const struct CRGB(*_in)) {
     for (uint16_t idx = 0; idx < s; idx++) {
@@ -293,6 +298,10 @@ public:
     port.print(" - ");
     port.println(style_names[int(_style)]);
   }
+
+  /*---------------------------------------------------------------------------
+    get_base_pattern_numel
+  ----------------------------------------------------------------------------*/
 
   uint16_t get_base_pattern_numel() {
     /* Return the number of elements making up the base pattern befitting the
