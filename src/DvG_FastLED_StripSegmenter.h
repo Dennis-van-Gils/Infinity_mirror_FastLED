@@ -1,4 +1,21 @@
-/* DvG_LEDStripSegmentor.h
+/* DvG_FastLED_StripSegmenter.h
+
+Manages a FastLED data array making up the full LED strip to be send out. It
+takes in another FastLED data array, considered as the base pattern to get
+copied/mirrored across by the FastLED_Segmenter to the full LED strip.
+
+There are different styles that can be choosen, in either 1, 2 or 4-fold
+symmetry.
+
+Expects a layout like an infinity mirror with 4 equal sides of length L:
+
+        L
+    ----------
+    |        |
+  L |        | L
+    |        |
+    ----------
+        L
 
 Dennis van Gils
 16-11-2021
@@ -30,24 +47,13 @@ const char *style_names[] = {"Full strip",
                              "Uni-directional side-to-side",
                              "Bi-directional side-to-side",
                              "Half-way periodic split, N=2",
-                             "EOL"};
+                             "EOL"}; // EOL: End-Of-List
 
 /*-----------------------------------------------------------------------------
-  FastLED_StripSegmentor
---------------------------------------------------------------------------------
-  Mirror and/or repeats an incoming LED pattern, 2 or 4 fold.
-  Expects a layout like an infinity mirror with 4 equal sides of length L.
+  FastLED_StripSegmenter
+-----------------------------------------------------------------------------*/
 
-         L
-     ----------
-     |        |
-   L |        | L
-     |        |
-     ----------
-         L
-*/
-
-class FastLED_StripSegmentor {
+class FastLED_StripSegmenter {
 private:
   int L = FastLEDConfig::L;
   int N = FastLEDConfig::N;
@@ -66,7 +72,7 @@ private:
   }
 
 public:
-  FastLED_StripSegmentor() {
+  FastLED_StripSegmenter() {
     /* */
     set_style(StyleEnum::FULL_STRIP);
   }
@@ -76,17 +82,17 @@ public:
   ----------------------------------------------------------------------------*/
 
   void process(const struct CRGB(*in), struct CRGB(*out)) {
-    /*
+    /* Copy/mirror the effect across the full strip.
+
     Args:
-       in : LED array containing the base pattern data to be copied/mirrored to
-            the rest of the full strip, using the currently selected style.
+       in : LED array containing the base pattern data to be copied/mirrored
+            across the full strip using the currently selected style.
             Aka `leds_effect`.
        out: LED array containing the full LED strip data to be send out.
             Aka `leds_strip`.
     */
     uint16_t idx; // LED position index used in many for-loops
 
-    // Perform LED-strip segmenting
     switch (_style) {
       case StyleEnum::COPIED_SIDES:
         /* Copied sides
