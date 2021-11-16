@@ -12,6 +12,9 @@ Dennis van Gils
 #include "DvG_FastLED_config.h"
 #include "FastLED.h"
 
+extern CRGB leds[FastLEDConfig::N];
+extern uint16_t s;
+
 static uint16_t idx; // LED position index used in many for-loops
 static uint32_t now; // To store `millis()` value used in many functions
 uint8_t iHue = 0;    // Rotating hue used by many of the effects
@@ -33,7 +36,13 @@ void generate_heart_beat() {
   generate_ECG(ECG::wave, ECG_N_SMP);
 }
 
-void heart_beat(struct CRGB(*leds), uint16_t s) {
+void enter__HeartBeat() {
+  ECG::idx = round(ECG_N_SMP / 6.);
+  ECG::tick = millis();
+  // fill_solid(leds, s, CRGB::Red);
+}
+
+void update__HeartBeat() {
   uint8_t iTry = 4;
 
   switch (iTry) {
@@ -85,19 +94,19 @@ void heart_beat(struct CRGB(*leds), uint16_t s) {
   FastLED effects
 ------------------------------------------------------------------------------*/
 
-void rainbow(struct CRGB(*leds), uint16_t s) {
+void update__Rainbow() {
   // FastLED's built-in rainbow generator
   fill_rainbow(leds, s, iHue, 255 / (s - 1));
 }
 
-void sinelon(struct CRGB(*leds), uint16_t s) {
+void update__Sinelon() {
   // A colored dot sweeping back and forth, with fading trails
   fadeToBlackBy(leds, s, 4);
   idx = beatsin16(13, 0, s);
   leds[idx] += CHSV(iHue, 255, 255); // iHue, 255, 192
 }
 
-void bpm(struct CRGB(*leds), uint16_t s) {
+void update__BPM() {
   // Colored stripes pulsing at a defined beats-per-minute
   CRGBPalette16 palette = PartyColors_p; // RainbowColors_p; // PartyColors_p;
   uint8_t bpm_ = 30;
@@ -108,7 +117,7 @@ void bpm(struct CRGB(*leds), uint16_t s) {
   }
 }
 
-void juggle(struct CRGB(*leds), uint16_t s) {
+void update__Juggle() {
   // 8 colored dots, weaving in and out of sync with each other
   byte dothue = 0;
   fadeToBlackBy(leds, s, 20);
@@ -118,11 +127,9 @@ void juggle(struct CRGB(*leds), uint16_t s) {
   }
 }
 
-void full_white(struct CRGB(*leds), uint16_t s) {
-  fill_solid(leds, s, CRGB::White);
-}
+void update__FullWhite() { fill_solid(leds, s, CRGB::White); }
 
-void strobe(struct CRGB(*leds), uint16_t s) {
+void update__Strobe() {
   if (iHue % 16) {
     fill_solid(leds, s, CRGB::Black);
   } else {
@@ -135,7 +142,7 @@ void strobe(struct CRGB(*leds), uint16_t s) {
   }
 }
 
-void dennis(struct CRGB(*leds), uint16_t s) {
+void update__Dennis() {
   fadeToBlackBy(leds, s, 16);
   idx = beatsin16(15, 0, s - 1);
   // leds[idx] = CRGB::Blue;
@@ -144,7 +151,7 @@ void dennis(struct CRGB(*leds), uint16_t s) {
   leds[s - idx - 1] = CRGB::OrangeRed;
 }
 
-void test_pattern(struct CRGB(*leds), uint16_t s) {
+void update__TestPattern() {
   for (idx = 0; idx < s; idx++) {
     leds[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
   }

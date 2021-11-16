@@ -23,7 +23,8 @@ CRGB leds_strip[FastLEDConfig::N];
 
 // LED data, base pattern containing the effect to get copied/mirrored across by
 // the FastLED_Segmenter in either 1, 2 or 4-fold symmetry.
-CRGB leds_effect[FastLEDConfig::N];
+CRGB leds[FastLEDConfig::N];
+uint16_t s = FastLEDConfig::N;
 
 FastLED_StripSegmenter segmntr;
 
@@ -31,24 +32,38 @@ FastLED_StripSegmenter segmntr;
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
 /*-----------------------------------------------------------------------------
+  Finite State Machine
+------------------------------------------------------------------------------*/
+
+State state__HeartBeat(enter__HeartBeat, update__HeartBeat);
+State state__Dennis(update__Dennis);
+State state__Rainbow(update__Rainbow);
+
+State states[] = {state__HeartBeat, state__Dennis, state__Rainbow};
+uint16_t state_idx = 0;
+uint16_t state_N = ARRAY_SIZE(states);
+
+FSM fsm = FSM(state__HeartBeat);
+
+/*-----------------------------------------------------------------------------
   Effects
 ------------------------------------------------------------------------------*/
 
+/*
 // List of effects to cycle through
-typedef void (*Effects[])(struct CRGB(*leds), uint16_t s);
+typedef void (*Effects[])();
 uint8_t effect_idx = 0; // Index number of the current effect
 
-// Effects effects = {rainbow, sinelon, juggle, bpm};
-// Effects effects = {sinelon, bpm, rainbow};
-// Effects effects = {dennis};
-Effects effects = {heart_beat, rainbow, sinelon,     bpm,
-                   juggle,     dennis,  test_pattern};
+Effects effects = {update__HeartBeat,  update__Rainbow, update__Sinelon,
+                   update__BPM,        update__Juggle,  update__Dennis,
+                   update__TestPattern};
 
 void next_effect() {
   effect_idx = (effect_idx + 1) % ARRAY_SIZE(effects);
   Ser.print("effect: ");
   Ser.println(effect_idx);
 }
+*/
 
 /*-----------------------------------------------------------------------------
   setup
@@ -71,7 +86,7 @@ void setup() {
 
   FastLED.setBrightness(FastLEDConfig::BRIGHTNESS);
 
-  fill_solid(leds_effect, FastLEDConfig::N, CRGB::Black);
+  fill_solid(leds, FastLEDConfig::N, CRGB::Black);
   fill_solid(leds_strip, FastLEDConfig::N, CRGB::Black);
 
   // IR distance sensor
@@ -101,14 +116,18 @@ void loop() {
       segmntr.print_style_name(Ser);
 
     } else if (strcmp(strCmd, "p") == 0) {
-      next_effect();
+      // next_effect();
+      state_idx = (state_idx + 1) % state_N;
+      fsm.transitionTo(states[state_idx]);
     }
   }
 
   // Calculate the LED data array of the current effect, i.e. the base pattern.
   // The array is calculated up to a length as dictated by the current
   // StripSegmenter style.
-  effects[effect_idx](leds_effect, segmntr.get_base_pattern_numel());
+  s = segmntr.get_base_pattern_numel();
+  // effects[effect_idx]();
+  fsm.update();
 
   /* IR distance sensor
     Sharp 2Y0A02
@@ -120,11 +139,11 @@ void loop() {
     IR_switch = (A0_V > 2);
   }
   if (IR_switch) {
-    full_white(leds_effect, segmntr.get_base_pattern_numel());
+    update__FullWhite();
   }
 
   // Copy/mirror the effect across the full strip
-  segmntr.process(leds_effect, leds_strip);
+  segmntr.process(leds, leds_strip);
 
   // Keep the framerate modest and allow for brightness dithering.
   // Will also invoke FASTLED.show() - sending out the LED data - at least once.
