@@ -1,12 +1,12 @@
 /* DvG_LEDStripSegmentor.h
 
 Dennis van Gils
-15-11-2021
+16-11-2021
 */
 #include <Arduino.h>
 
+#include "DvG_FastLED_config.h"
 #include "FastLED.h"
-#include "LEDStripConfig.h"
 
 /*-----------------------------------------------------------------------------
   Styles
@@ -33,7 +33,7 @@ const char *style_names[] = {"Full strip",
                              "EOL"};
 
 /*-----------------------------------------------------------------------------
-  LEDStripSegmentor
+  FastLED_StripSegmentor
 --------------------------------------------------------------------------------
   Mirror and/or repeats an incoming LED pattern, 2 or 4 fold.
   Expects a layout like an infinity mirror with 4 equal sides of length L.
@@ -47,17 +47,17 @@ const char *style_names[] = {"Full strip",
          L
 */
 
-class LEDStripSegmentor {
+class FastLED_StripSegmentor {
 private:
-  int L = LEDStripConfig::L;
-  int N = LEDStripConfig::N;
+  int L = FastLEDConfig::L;
+  int N = FastLEDConfig::N;
   uint32_t CRGB_SIZE = sizeof(CRGB);
-  uint32_t CRGB_SIZE_L = LEDStripConfig::L * CRGB_SIZE;
+  uint32_t CRGB_SIZE_L = FastLEDConfig::L * CRGB_SIZE;
 
   StyleEnum _style;
   uint16_t s; // = get_base_pattern_numel()
 
-  CRGB in_flip[LEDStripConfig::N]; // Flipped `in` base pattern data
+  CRGB in_flip[FastLEDConfig::N]; // Flipped `in` base pattern data
 
   void calc_in_flip(const struct CRGB(*_in)) {
     for (uint16_t idx = 0; idx < s; idx++) {
@@ -66,7 +66,7 @@ private:
   }
 
 public:
-  LEDStripSegmentor() {
+  FastLED_StripSegmentor() {
     /* */
     set_style(StyleEnum::FULL_STRIP);
   }

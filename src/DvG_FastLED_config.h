@@ -1,9 +1,9 @@
-#ifndef LED_STRIP_CONFIG_H
-#define LED_STRIP_CONFIG_H
+#ifndef DVG_FASTLED_CONFIG_H
+#define DVG_FASTLED_CONFIG_H
 
 #include <Arduino.h>
 
-namespace LEDStripConfig {
+namespace FastLEDConfig {
   /* Infinity mirror, square with equal sides
 
          L
@@ -28,6 +28,6 @@ namespace LEDStripConfig {
 
   const uint8_t BRIGHTNESS = 64;
   const uint16_t DELAY = round(1000 / 120); // 1000 / FPS, FPS = 120
-} // namespace LEDStripConfig
+} // namespace FastLEDConfig
 
 #endif
