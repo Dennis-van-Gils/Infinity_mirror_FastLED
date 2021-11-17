@@ -33,6 +33,8 @@ Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 #define STYLE_NAME_LEN 64
+#define CRGB_SIZE sizeof(CRGB)
+#define CRGB_SIZE_L (FastLEDConfig::L * CRGB_SIZE)
 
 enum StyleEnum {
   FULL_STRIP,
@@ -62,8 +64,6 @@ class FastLED_StripSegmenter {
 private:
   int L = FastLEDConfig::L;
   int N = FastLEDConfig::N;
-  uint32_t CRGB_SIZE = sizeof(CRGB);
-  uint32_t CRGB_SIZE_L = FastLEDConfig::L * CRGB_SIZE;
 
   StyleEnum _style;
   uint16_t s; // = get_base_pattern_numel()

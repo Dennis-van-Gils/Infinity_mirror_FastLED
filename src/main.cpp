@@ -18,7 +18,7 @@ Dennis van Gils
 FASTLED_USING_NAMESPACE
 
 // LED data of the full strip
-CRGB leds_strip[FastLEDConfig::N];
+CRGB leds_strip[FastLEDConfig::N]; // WILL BE USED EXTERNALLY
 
 // LED data containing the base pattern to get copied/mirrored across by
 // the FastLED_Segmenter in either 1, 2 or 4-fold symmetry. This array will

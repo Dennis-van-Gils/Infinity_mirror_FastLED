@@ -15,14 +15,21 @@ Dennis van Gils
 #include "DvG_FastLED_StripSegmenter.h"
 
 // External variables defined in `main.cpp`
+extern CRGB leds_strip[FastLEDConfig::N];
 extern CRGB leds[FastLEDConfig::N];
 extern uint16_t s;
 extern FastLED_StripSegmenter segmntr;
+extern FSM fsm;
 
 static uint16_t idx; // LED position index used in many for-loops
 static uint32_t now; // To store `millis()` value used in many functions
 uint8_t iHue = 0;    // Hue used by many of the effects
 float hue_step = 1;
+
+void full_back_copy() {
+  // Copy the full `leds_stip` back into `leds`
+  memmove(leds, leds_strip, FastLEDConfig::N * CRGB_SIZE);
+}
 
 /*-----------------------------------------------------------------------------
   HeartBeat
@@ -50,11 +57,24 @@ void enter__HeartBeat() {
   segmntr.set_style(StyleEnum::FULL_STRIP);
   ECG::idx = round(ECG_N_SMP / 6.);
   ECG::tick = millis();
-  // fill_solid(leds, s, CRGB::Red);
+
+  // Start-up routine
+  full_back_copy();
 }
 
 void update__HeartBeat() {
   uint8_t iTry = 4;
+
+  // Start-up routine
+  if (fsm.timeInCurrentState() < 500) {
+    fadeToBlackBy(leds, FastLEDConfig::N, 8);
+    // TODO: Tell Segmenter somehow to operate on N, not s
+    // Or better: Disable Segmentor momentarily and fadeToBlackBy
+    // operates on `leds_strip`.
+    // Or betterer: Call ` segmntr.process(leds, leds_strip);` from
+    // here in block below, instead of from `main.h`.
+    return;
+  }
 
   switch (iTry) {
     case 1:
