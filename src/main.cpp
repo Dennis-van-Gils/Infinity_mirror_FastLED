@@ -84,7 +84,17 @@ void loop() {
     strCmd = sc.getCmd();
 
     if (strcmp(strCmd, "id?") == 0) {
-      Ser.println("Arduino, Infinity mirror");
+      Ser.println("Arduino, Infinity Mirror");
+
+    } else if (strcmp(strCmd, "o") == 0) {
+      state_idx = (state_idx + states.size() - 1) % states.size();
+      fsm.transitionTo(states[state_idx]);
+      state_has_changed = true;
+
+    } else if (strcmp(strCmd, "p") == 0) {
+      state_idx = (state_idx + 1) % states.size();
+      fsm.transitionTo(states[state_idx]);
+      state_has_changed = true;
 
     } else if (strcmp(strCmd, "]") == 0) {
       segmntr.next_style();
@@ -94,10 +104,11 @@ void loop() {
       segmntr.prev_style();
       segmntr.print_style_name(Ser);
 
-    } else if (strcmp(strCmd, "p") == 0) {
-      state_idx = (state_idx + 1) % states.size();
-      fsm.transitionTo(states[state_idx]);
-      state_has_changed = true;
+    } else if (strcmp(strCmd, "?") == 0) {
+      fsm.getCurrentStateName(current_state_name);
+      Ser.print("Effect: ");
+      Ser.println(current_state_name);
+      segmntr.print_style_name(Ser);
     }
   }
 
