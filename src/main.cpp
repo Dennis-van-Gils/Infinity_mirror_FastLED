@@ -5,6 +5,7 @@ Dennis van Gils
 */
 
 #include <Arduino.h>
+#include <vector>
 
 #include "FastLED.h"
 #include "FiniteStateMachine.h"
@@ -13,8 +14,6 @@ Dennis van Gils
 #include "DvG_FastLED_config.h"
 #include "DvG_FastLED_effects.h"
 #include "DvG_SerialCommand.h"
-
-#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
 FASTLED_USING_NAMESPACE
 
@@ -32,38 +31,16 @@ FastLED_StripSegmenter segmntr;
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
 /*-----------------------------------------------------------------------------
-  Finite State Machine
+  Finite State Machine managing all the effects
 ------------------------------------------------------------------------------*/
 
-State state__HeartBeat(enter__HeartBeat, update__HeartBeat);
-State state__Dennis(update__Dennis);
-State state__Rainbow(update__Rainbow);
-
-State states[] = {state__HeartBeat, state__Dennis, state__Rainbow};
+bool effect_has_changed = true;
 uint16_t state_idx = 0;
-uint16_t state_N = ARRAY_SIZE(states);
+std::vector<State> states = {state__HeartBeat,  state__Dennis, state__Rainbow,
+                             state__BPM,        state__Juggle, state__Sinelon,
+                             state__TestPattern};
 
-FSM fsm = FSM(state__HeartBeat);
-
-/*-----------------------------------------------------------------------------
-  Effects
-------------------------------------------------------------------------------*/
-
-/*
-// List of effects to cycle through
-typedef void (*Effects[])();
-uint8_t effect_idx = 0; // Index number of the current effect
-
-Effects effects = {update__HeartBeat,  update__Rainbow, update__Sinelon,
-                   update__BPM,        update__Juggle,  update__Dennis,
-                   update__TestPattern};
-
-void next_effect() {
-  effect_idx = (effect_idx + 1) % ARRAY_SIZE(effects);
-  Ser.print("effect: ");
-  Ser.println(effect_idx);
-}
-*/
+FSM fsm = FSM(states[0]);
 
 /*-----------------------------------------------------------------------------
   setup
@@ -75,7 +52,7 @@ void setup() {
   // Ensure a minimum delay for recovery of FastLED
   // Generate heart beat in the mean time
   uint32_t tick = millis();
-  generate_heart_beat();
+  generate_HeartBeat();
   while (millis() - tick < 3000) {}
 
   FastLED
@@ -116,18 +93,24 @@ void loop() {
       segmntr.print_style_name(Ser);
 
     } else if (strcmp(strCmd, "p") == 0) {
-      // next_effect();
-      state_idx = (state_idx + 1) % state_N;
+      state_idx = (state_idx + 1) % states.size();
       fsm.transitionTo(states[state_idx]);
+      effect_has_changed = true;
     }
   }
 
   // Calculate the LED data array of the current effect, i.e. the base pattern.
-  // The array is calculated up to a length as dictated by the current
+  // The array is calculated up to length `s` as dictated by the current
   // StripSegmenter style.
   s = segmntr.get_base_pattern_numel();
-  // effects[effect_idx]();
   fsm.update();
+
+  // Print effect name to serial monitor when changed
+  if (effect_has_changed) {
+    Ser.print("Effect: ");
+    Ser.println(effect_name);
+    effect_has_changed = false;
+  }
 
   /* IR distance sensor
     Sharp 2Y0A02
