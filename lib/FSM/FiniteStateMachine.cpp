@@ -1,9 +1,10 @@
 /*
 Edited:
-  - Added State::State(void (*enterFunction)(), void (*updateFunction)())
+  - Added name string to class `State`
+  - Added `getCurrentStateName(char *buffer)` to class `FiniteStateMachine`
 
 Dennis van Gils
-16-11-2021
+17-11-2021
 
 ||
 || @file FiniteStateMachine.cpp
@@ -55,6 +56,29 @@ State::State(void (*enterFunction)(), void (*updateFunction)(),
   userExit = exitFunction;
 }
 
+State::State(const char *name, void (*updateFunction)()) {
+  snprintf(_name, STATE_NAME_LEN, name);
+  userEnter = nullptr;
+  userUpdate = updateFunction;
+  userExit = nullptr;
+}
+
+State::State(const char *name, void (*enterFunction)(),
+             void (*updateFunction)()) {
+  snprintf(_name, STATE_NAME_LEN, name);
+  userEnter = enterFunction;
+  userUpdate = updateFunction;
+  userExit = nullptr;
+}
+
+State::State(const char *name, void (*enterFunction)(),
+             void (*updateFunction)(), void (*exitFunction)()) {
+  snprintf(_name, STATE_NAME_LEN, name);
+  userEnter = enterFunction;
+  userUpdate = updateFunction;
+  userExit = exitFunction;
+}
+
 // what to do when entering this state
 void State::enter() {
   if (userEnter) {
@@ -75,6 +99,8 @@ void State::exit() {
     userExit();
   }
 }
+
+void State::getName(char *buffer) { snprintf(buffer, STATE_NAME_LEN, _name); }
 // END FINITE STATE
 
 // FINITE STATE MACHINE
@@ -123,6 +149,10 @@ boolean FiniteStateMachine::isInState(State &state) const {
   } else {
     return false;
   }
+}
+
+void FiniteStateMachine::getCurrentStateName(char *buffer) {
+  snprintf(buffer, STATE_NAME_LEN, currentState->_name);
 }
 
 unsigned long FiniteStateMachine::timeInCurrentState() {

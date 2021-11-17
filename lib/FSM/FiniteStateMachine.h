@@ -1,9 +1,10 @@
 /*
 Edited:
-  - Added State::State(void (*enterFunction)(), void (*updateFunction)())
+  - Added name string to class `State`
+  - Added `getCurrentStateName(char *buffer)` to class `FiniteStateMachine`
 
 Dennis van Gils
-16-11-2021
+17-11-2021
 
 ||
 || @file FiniteStateMachine.h
@@ -61,6 +62,7 @@ terry@yourduino.com
 #  endif
 
 #  define FSM FiniteStateMachine
+#  define STATE_NAME_LEN 64
 
 // define the functionality of the states
 class State {
@@ -69,16 +71,20 @@ public:
   State(void (*enterFunction)(), void (*updateFunction)());
   State(void (*enterFunction)(), void (*updateFunction)(),
         void (*exitFunction)());
-  // State( byte newId, void (*enterFunction)(), void (*updateFunction)(), void
-  // (*exitFunction)() );
 
-  // void getId();
+  State(const char *name, void (*updateFunction)());
+  State(const char *name, void (*enterFunction)(), void (*updateFunction)());
+  State(const char *name, void (*enterFunction)(), void (*updateFunction)(),
+        void (*exitFunction)());
+
+  char _name[STATE_NAME_LEN] = {"\0"};
+
   void enter();
   void update();
   void exit();
+  void getName(char *buffer);
 
 private:
-  // byte id;
   void (*userEnter)() = nullptr;
   void (*userUpdate)() = nullptr;
   void (*userExit)() = nullptr;
@@ -95,6 +101,7 @@ public:
 
   State &getCurrentState();
   boolean isInState(State &state) const;
+  void getCurrentStateName(char *buffer);
 
   unsigned long timeInCurrentState();
 

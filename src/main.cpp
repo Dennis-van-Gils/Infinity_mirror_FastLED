@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-16-11-2021
+17-11-2021
 */
 
 #include <Arduino.h>
@@ -34,11 +34,13 @@ DvG_SerialCommand sc(Ser); // Instantiate serial command listener
   Finite State Machine managing all the effects
 ------------------------------------------------------------------------------*/
 
-bool effect_has_changed = true;
-uint16_t state_idx = 0;
 std::vector<State> states = {state__HeartBeat,  state__Dennis, state__Rainbow,
                              state__BPM,        state__Juggle, state__Sinelon,
                              state__TestPattern};
+
+char current_state_name[STATE_NAME_LEN] = {"\0"};
+bool state_has_changed = true;
+uint16_t state_idx = 0;
 
 FSM fsm = FSM(states[0]);
 
@@ -95,7 +97,7 @@ void loop() {
     } else if (strcmp(strCmd, "p") == 0) {
       state_idx = (state_idx + 1) % states.size();
       fsm.transitionTo(states[state_idx]);
-      effect_has_changed = true;
+      state_has_changed = true;
     }
   }
 
@@ -105,11 +107,11 @@ void loop() {
   s = segmntr.get_base_pattern_numel();
   fsm.update();
 
-  // Print effect name to serial monitor when changed
-  if (effect_has_changed) {
+  if (state_has_changed) {
+    state_has_changed = false;
+    fsm.getCurrentStateName(current_state_name);
     Ser.print("Effect: ");
-    Ser.println(effect_name);
-    effect_has_changed = false;
+    Ser.println(current_state_name);
   }
 
   /* IR distance sensor

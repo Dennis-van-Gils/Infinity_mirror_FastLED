@@ -1,7 +1,7 @@
 /* DvG_LEDStripSegmentor.h
 
 Dennis van Gils
-16-11-2021
+17-11-2021
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -20,9 +20,6 @@ extern uint16_t s;
 static uint16_t idx; // LED position index used in many for-loops
 static uint32_t now; // To store `millis()` value used in many functions
 uint8_t iHue = 0;    // Rotating hue used by many of the effects
-
-#define EFFECT_NAME_LEN 64
-char effect_name[EFFECT_NAME_LEN] = {"\0"};
 
 /*-----------------------------------------------------------------------------
   HeartBeat
@@ -47,7 +44,6 @@ void generate_HeartBeat() {
 }
 
 void enter__HeartBeat() {
-  snprintf(effect_name, EFFECT_NAME_LEN, "HeartBeat");
   ECG::idx = round(ECG_N_SMP / 6.);
   ECG::tick = millis();
   // fill_solid(leds, s, CRGB::Red);
@@ -102,7 +98,7 @@ void update__HeartBeat() {
   }
 }
 
-State state__HeartBeat(enter__HeartBeat, update__HeartBeat);
+State state__HeartBeat("HeartBeat", enter__HeartBeat, update__HeartBeat);
 
 /*-----------------------------------------------------------------------------
   Rainbow
@@ -110,11 +106,11 @@ State state__HeartBeat(enter__HeartBeat, update__HeartBeat);
   FastLED's built-in rainbow generator
 ------------------------------------------------------------------------------*/
 
-void enter__Rainbow() { snprintf(effect_name, EFFECT_NAME_LEN, "Rainbow"); }
+void enter__Rainbow() {}
 
 void update__Rainbow() { fill_rainbow(leds, s, iHue, 255 / (s - 1)); }
 
-State state__Rainbow(enter__Rainbow, update__Rainbow);
+State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
 
 /*-----------------------------------------------------------------------------
   Sinelon
@@ -122,16 +118,15 @@ State state__Rainbow(enter__Rainbow, update__Rainbow);
   A colored dot sweeping back and forth, with fading trails
 ------------------------------------------------------------------------------*/
 
-void enter__Sinelon() { snprintf(effect_name, EFFECT_NAME_LEN, "Sinelon"); }
+void enter__Sinelon() {}
 
 void update__Sinelon() {
-  // A colored dot sweeping back and forth, with fading trails
   fadeToBlackBy(leds, s, 4);
   idx = beatsin16(13, 0, s);
   leds[idx] += CHSV(iHue, 255, 255); // iHue, 255, 192
 }
 
-State state__Sinelon(enter__Sinelon, update__Sinelon);
+State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 
 /*-----------------------------------------------------------------------------
   BPM
@@ -139,7 +134,7 @@ State state__Sinelon(enter__Sinelon, update__Sinelon);
   Colored stripes pulsing at a defined beats-per-minute
 ------------------------------------------------------------------------------*/
 
-void enter__BPM() { snprintf(effect_name, EFFECT_NAME_LEN, "BPM"); }
+void enter__BPM() {}
 
 void update__BPM() {
   CRGBPalette16 palette = PartyColors_p; // RainbowColors_p; // PartyColors_p;
@@ -151,7 +146,7 @@ void update__BPM() {
   }
 }
 
-State state__BPM(enter__BPM, update__BPM);
+State state__BPM("BPM", enter__BPM, update__BPM);
 
 /*-----------------------------------------------------------------------------
   Juggle
@@ -159,7 +154,7 @@ State state__BPM(enter__BPM, update__BPM);
   8 colored dots, weaving in and out of sync with each other
 ------------------------------------------------------------------------------*/
 
-void enter__Juggle() { snprintf(effect_name, EFFECT_NAME_LEN, "Juggle"); }
+void enter__Juggle() {}
 
 void update__Juggle() {
   byte dothue = 0;
@@ -170,17 +165,17 @@ void update__Juggle() {
   }
 }
 
-State state__Juggle(enter__Juggle, update__Juggle);
+State state__Juggle("Juggle", enter__Juggle, update__Juggle);
 
 /*-----------------------------------------------------------------------------
   FullWhite
 ------------------------------------------------------------------------------*/
 
-void enter__FullWhite() { snprintf(effect_name, EFFECT_NAME_LEN, "FullWhite"); }
+void enter__FullWhite() {}
 
 void update__FullWhite() { fill_solid(leds, s, CRGB::White); }
 
-State state__FullWhite(update__FullWhite);
+State state__FullWhite("FullWhite", update__FullWhite);
 
 /*-----------------------------------------------------------------------------
   Stobe
@@ -194,7 +189,7 @@ namespace Strobe {
   uint16_t T_flash_length = 20;                // [ms]
 } // namespace Strobe
 
-void enter__Strobe() { snprintf(effect_name, EFFECT_NAME_LEN, "Strobe"); }
+void enter__Strobe() {}
 
 void update__Strobe() {
   EVERY_N_MILLISECONDS(Strobe::T_flash_delay) {
@@ -206,13 +201,13 @@ void update__Strobe() {
   }
 }
 
-State state__Strobe(enter__Strobe, update__Strobe);
+State state__Strobe("Strobe", enter__Strobe, update__Strobe);
 
 /*-----------------------------------------------------------------------------
   Dennis
 ------------------------------------------------------------------------------*/
 
-void enter__Dennis() { snprintf(effect_name, EFFECT_NAME_LEN, "Dennis"); }
+void enter__Dennis() {}
 
 void update__Dennis() {
   fadeToBlackBy(leds, s, 16);
@@ -223,7 +218,7 @@ void update__Dennis() {
   leds[s - idx - 1] = CRGB::OrangeRed;
 }
 
-State state__Dennis(enter__Dennis, update__Dennis);
+State state__Dennis("Dennis", enter__Dennis, update__Dennis);
 
 /*-----------------------------------------------------------------------------
   TestPattern
@@ -233,9 +228,7 @@ State state__Dennis(enter__Dennis, update__Dennis);
   In between: Alternating blue/yellow
 ------------------------------------------------------------------------------*/
 
-void enter__TestPattern() {
-  snprintf(effect_name, EFFECT_NAME_LEN, "TestPattern");
-}
+void enter__TestPattern() {}
 
 void update__TestPattern() {
   for (idx = 0; idx < s; idx++) {
@@ -245,6 +238,7 @@ void update__TestPattern() {
   leds[s - 1] = CRGB::Red;
 }
 
-State state__TestPattern(enter__TestPattern, update__TestPattern);
+State state__TestPattern("TestPattern", enter__TestPattern,
+                         update__TestPattern);
 
 #endif
