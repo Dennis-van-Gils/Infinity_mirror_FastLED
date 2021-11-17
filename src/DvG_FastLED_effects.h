@@ -12,14 +12,17 @@ Dennis van Gils
 #include "FiniteStateMachine.h"
 
 #include "DvG_ECG_simulation.h"
-#include "DvG_FastLED_config.h"
+#include "DvG_FastLED_StripSegmenter.h"
 
+// External variables defined in `main.cpp`
 extern CRGB leds[FastLEDConfig::N];
 extern uint16_t s;
+extern FastLED_StripSegmenter segmntr;
 
 static uint16_t idx; // LED position index used in many for-loops
 static uint32_t now; // To store `millis()` value used in many functions
-uint8_t iHue = 0;    // Rotating hue used by many of the effects
+uint8_t iHue = 0;    // Hue used by many of the effects
+float hue_step = 1;
 
 /*-----------------------------------------------------------------------------
   HeartBeat
@@ -44,6 +47,7 @@ void generate_HeartBeat() {
 }
 
 void enter__HeartBeat() {
+  segmntr.set_style(StyleEnum::FULL_STRIP);
   ECG::idx = round(ECG_N_SMP / 6.);
   ECG::tick = millis();
   // fill_solid(leds, s, CRGB::Red);
@@ -106,9 +110,28 @@ State state__HeartBeat("HeartBeat", enter__HeartBeat, update__HeartBeat);
   FastLED's built-in rainbow generator
 ------------------------------------------------------------------------------*/
 
-void enter__Rainbow() {}
+void enter__Rainbow() {
+  segmntr.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
+  hue_step = 1;
+}
 
-void update__Rainbow() { fill_rainbow(leds, s, iHue, 255 / (s - 1)); }
+void update__Rainbow() {
+  fill_rainbow(leds, s, iHue, 255 / (s - 1));
+  hue_step = beatsin16(10, 1, 20);
+  /*
+  if (hue_step_up) {
+    hue_step += 0.05;
+    if (hue_step >= 20) {
+      hue_step_up = false;
+    }
+  } else {
+    hue_step -= 0.05;
+    if (hue_step <= 1) {
+      hue_step_up = true;
+    }
+  }
+  */
+}
 
 State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
 
@@ -118,7 +141,7 @@ State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
   A colored dot sweeping back and forth, with fading trails
 ------------------------------------------------------------------------------*/
 
-void enter__Sinelon() {}
+void enter__Sinelon() { segmntr.set_style(StyleEnum::BI_DIR_SIDE2SIDE); }
 
 void update__Sinelon() {
   fadeToBlackBy(leds, s, 4);
@@ -134,7 +157,7 @@ State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
   Colored stripes pulsing at a defined beats-per-minute
 ------------------------------------------------------------------------------*/
 
-void enter__BPM() {}
+void enter__BPM() { segmntr.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2); }
 
 void update__BPM() {
   CRGBPalette16 palette = PartyColors_p; // RainbowColors_p; // PartyColors_p;
@@ -154,7 +177,7 @@ State state__BPM("BPM", enter__BPM, update__BPM);
   8 colored dots, weaving in and out of sync with each other
 ------------------------------------------------------------------------------*/
 
-void enter__Juggle() {}
+void enter__Juggle() { segmntr.set_style(StyleEnum::PERIO_OPP_CORNERS_N4); }
 
 void update__Juggle() {
   byte dothue = 0;
@@ -171,7 +194,7 @@ State state__Juggle("Juggle", enter__Juggle, update__Juggle);
   FullWhite
 ------------------------------------------------------------------------------*/
 
-void enter__FullWhite() {}
+void enter__FullWhite() { segmntr.set_style(StyleEnum::FULL_STRIP); }
 
 void update__FullWhite() { fill_solid(leds, s, CRGB::White); }
 
@@ -189,7 +212,7 @@ namespace Strobe {
   uint16_t T_flash_length = 20;                // [ms]
 } // namespace Strobe
 
-void enter__Strobe() {}
+void enter__Strobe() { segmntr.set_style(StyleEnum::FULL_STRIP); }
 
 void update__Strobe() {
   EVERY_N_MILLISECONDS(Strobe::T_flash_delay) {
@@ -207,7 +230,7 @@ State state__Strobe("Strobe", enter__Strobe, update__Strobe);
   Dennis
 ------------------------------------------------------------------------------*/
 
-void enter__Dennis() {}
+void enter__Dennis() { segmntr.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2); }
 
 void update__Dennis() {
   fadeToBlackBy(leds, s, 16);
@@ -228,7 +251,7 @@ State state__Dennis("Dennis", enter__Dennis, update__Dennis);
   In between: Alternating blue/yellow
 ------------------------------------------------------------------------------*/
 
-void enter__TestPattern() {}
+void enter__TestPattern() { segmntr.set_style(StyleEnum::COPIED_SIDES); }
 
 void update__TestPattern() {
   for (idx = 0; idx < s; idx++) {

@@ -20,6 +20,9 @@ Expects a layout like an infinity mirror with 4 equal sides of length L:
 Dennis van Gils
 17-11-2021
 */
+#ifndef DVG_FASTLED_STRIPSEGMENTER_H
+#define DVG_FASTLED_STRIPSEGMENTER_H
+
 #include <Arduino.h>
 
 #include "DvG_FastLED_config.h"
@@ -318,3 +321,5 @@ public:
     return s;
   }
 };
+
+#endif

@@ -20,12 +20,13 @@ FASTLED_USING_NAMESPACE
 // LED data of the full strip
 CRGB leds_strip[FastLEDConfig::N];
 
-// LED data, base pattern containing the effect to get copied/mirrored across by
-// the FastLED_Segmenter in either 1, 2 or 4-fold symmetry.
-CRGB leds[FastLEDConfig::N];
-uint16_t s = FastLEDConfig::N;
-
-FastLED_StripSegmenter segmntr;
+// LED data containing the base pattern to get copied/mirrored across by
+// the FastLED_Segmenter in either 1, 2 or 4-fold symmetry. This array will
+// receive the LED effect. The LED effect has to be calculated up to length `s`
+// as dictated by the current StripSegmenter style.
+CRGB leds[FastLEDConfig::N];    // WILL BE USED EXTERNALLY
+uint16_t s = FastLEDConfig::N;  // WILL BE USED EXTERNALLY
+FastLED_StripSegmenter segmntr; // WILL BE USED EXTERNALLY
 
 #define Ser Serial
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
@@ -42,7 +43,8 @@ char current_state_name[STATE_NAME_LEN] = {"\0"};
 bool state_has_changed = true;
 uint16_t state_idx = 0;
 
-FSM fsm = FSM(states[0]);
+// FSM fsm = FSM(states[0]);
+FSM fsm = FSM(state__Rainbow);
 
 /*-----------------------------------------------------------------------------
   setup
@@ -115,7 +117,12 @@ void loop() {
   // Calculate the LED data array of the current effect, i.e. the base pattern.
   // The array is calculated up to length `s` as dictated by the current
   // StripSegmenter style.
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_pattern_numel(); // CRITICAL
+  /*
+  for (uint16_t idx = s; idx < FastLEDConfig::N; idx++) {
+    leds[idx] = CRGB::Black;
+  }
+  */
   fsm.update();
 
   if (state_has_changed) {
@@ -146,7 +153,7 @@ void loop() {
   FastLED.delay(FastLEDConfig::DELAY);
 
   // Periodic updates
-  EVERY_N_MILLISECONDS(30) { iHue++; }
+  EVERY_N_MILLISECONDS(30) { iHue = iHue + hue_step; }
 
   /*
   EVERY_N_SECONDS(24) { next_effect(); }
