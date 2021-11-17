@@ -18,7 +18,7 @@ Expects a layout like an infinity mirror with 4 equal sides of length L:
         L
 
 Dennis van Gils
-16-11-2021
+17-11-2021
 */
 #include <Arduino.h>
 
@@ -28,6 +28,8 @@ Dennis van Gils
 /*-----------------------------------------------------------------------------
   Styles
 ------------------------------------------------------------------------------*/
+
+#define STYLE_NAME_LEN 64
 
 enum StyleEnum {
   FULL_STRIP,
@@ -278,8 +280,6 @@ public:
     }
   }
 
-  StyleEnum get_style() { return _style; }
-
   StyleEnum next_style() {
     int style_int = _style;
     style_int = (style_int + 1) % int(StyleEnum::EOL);
@@ -294,8 +294,10 @@ public:
     return _style;
   }
 
-  void get_style_name(char buffer[64]) {
-    snprintf(buffer, 64, style_names[int(_style)]);
+  StyleEnum get_style() { return _style; }
+
+  void get_style_name(char buffer[STYLE_NAME_LEN]) {
+    snprintf(buffer, STYLE_NAME_LEN, style_names[int(_style)]);
   }
 
   void print_style_name(Stream &port) {
