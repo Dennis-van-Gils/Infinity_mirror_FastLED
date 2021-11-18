@@ -4,7 +4,7 @@ Edited:
   - Added `getCurrentStateName(char *buffer)` to class `FiniteStateMachine`
 
 Dennis van Gils
-17-11-2021
+18-11-2021
 
 ||
 || @file FiniteStateMachine.cpp
@@ -38,15 +38,15 @@ Dennis van Gils
 
 // FINITE STATE
 State::State(void (*updateFunction)()) {
-  userEnter = nullptr;
+  userEnter = 0;
   userUpdate = updateFunction;
-  userExit = nullptr;
+  userExit = 0;
 }
 
 State::State(void (*enterFunction)(), void (*updateFunction)()) {
   userEnter = enterFunction;
   userUpdate = updateFunction;
-  userExit = nullptr;
+  userExit = 0;
 }
 
 State::State(void (*enterFunction)(), void (*updateFunction)(),
@@ -58,9 +58,9 @@ State::State(void (*enterFunction)(), void (*updateFunction)(),
 
 State::State(const char *name, void (*updateFunction)()) {
   snprintf(_name, STATE_NAME_LEN, name);
-  userEnter = nullptr;
+  userEnter = 0;
   userUpdate = updateFunction;
-  userExit = nullptr;
+  userExit = 0;
 }
 
 State::State(const char *name, void (*enterFunction)(),
@@ -68,7 +68,7 @@ State::State(const char *name, void (*enterFunction)(),
   snprintf(_name, STATE_NAME_LEN, name);
   userEnter = enterFunction;
   userUpdate = updateFunction;
-  userExit = nullptr;
+  userExit = 0;
 }
 
 State::State(const char *name, void (*enterFunction)(),

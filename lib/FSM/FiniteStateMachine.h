@@ -4,7 +4,7 @@ Edited:
   - Added `getCurrentStateName(char *buffer)` to class `FiniteStateMachine`
 
 Dennis van Gils
-17-11-2021
+18-11-2021
 
 ||
 || @file FiniteStateMachine.h
@@ -85,9 +85,9 @@ public:
   void getName(char *buffer);
 
 private:
-  void (*userEnter)() = nullptr;
-  void (*userUpdate)() = nullptr;
-  void (*userExit)() = nullptr;
+  void (*userEnter)() = 0;
+  void (*userUpdate)() = 0;
+  void (*userExit)() = 0;
 };
 
 // define the finite state machine functionality
