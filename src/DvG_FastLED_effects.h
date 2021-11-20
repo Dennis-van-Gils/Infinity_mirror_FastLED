@@ -33,7 +33,7 @@ uint16_t s; // Will hold `s = segmntr.get_base_numel()`
 extern uint8_t IR_dist; // Defined in `main.cpp`
 uint32_t fx_timebase = 0;
 uint8_t  fx_hue      = 0;
-float    fx_hue_step = 1;
+uint8_t  fx_hue_step = 1;
 // clang-format on
 
 // State control
@@ -166,7 +166,6 @@ State state__HeartBeat("HeartBeat", enter__HeartBeat, update__HeartBeat);
 void enter__Rainbow() {
   // segmntr.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
   // segmntr.set_style(StyleEnum::COPIED_SIDES);
-  fx_hue_step = 1;
 }
 
 void update__Rainbow() {
