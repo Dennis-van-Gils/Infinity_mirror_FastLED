@@ -76,9 +76,8 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   HeartBeat
 
   A beating heart. You must call `generate_HeartBeat()` once in `setup()`.
-  `idx_delay` determines the heart rate and can be changed at runtime.
 ------------------------------------------------------------------------------*/
-#define ECG_N_SMP 255 // max uint8_t
+#define ECG_N_SMP 255 // == max uint8_t, so you can use `beat8()` for timing
 
 namespace ECG {
   static float wave[ECG_N_SMP] = {0};
