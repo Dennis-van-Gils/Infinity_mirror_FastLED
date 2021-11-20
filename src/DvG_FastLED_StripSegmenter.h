@@ -374,13 +374,6 @@ public:
     snprintf(buffer, STYLE_NAME_LEN, style_names[int(_style)]);
   }
 
-  void print_style_name(Stream &port) {
-    port.print("Style : ");
-    port.print((int)_style);
-    port.print(" - ");
-    port.println(style_names[int(_style)]);
-  }
-
   /*----------------------------------------------------------------------------
     get_base_numel
   ----------------------------------------------------------------------------*/
