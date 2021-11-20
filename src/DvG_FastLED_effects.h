@@ -40,11 +40,14 @@ uint8_t  fx_hue_step = 1;
 bool effect_is_at_startup = false;
 
 static uint16_t idx; // LED position index used in many for-loops
-static uint32_t now; // To store `millis()` value used in many functions
 
 /*------------------------------------------------------------------------------
   CRGB array functions
 ------------------------------------------------------------------------------*/
+
+void create_leds_snapshot() {
+  memcpy8(leds_snapshot, leds, CRGB_SIZE * FastLEDConfig::N);
+}
 
 void blend_CRGB_arrays(CRGB *out, const CRGB *in_1, const CRGB *in_2,
                        uint16_t numel, fract8 amount_of_2) {
@@ -75,13 +78,11 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   A beating heart. You must call `generate_HeartBeat()` once in `setup()`.
   `idx_delay` determines the heart rate and can be changed at runtime.
 ------------------------------------------------------------------------------*/
-#define ECG_N_SMP 100 // 100
+#define ECG_N_SMP 255 // max uint8_t
 
 namespace ECG {
   static float wave[ECG_N_SMP] = {0};
-  static uint32_t tick = 0;
-  static uint16_t idx = 0;
-  static uint32_t idx_delay = 20;
+  static uint8_t idx = 0;
 } // namespace ECG
 
 void generate_HeartBeat() {
@@ -93,66 +94,41 @@ void generate_HeartBeat() {
 
 void enter__HeartBeat() {
   // segmntr.set_style(StyleEnum::FULL_STRIP);
-  ECG::idx = round(ECG_N_SMP / 6.);
-  ECG::tick = millis();
+  create_leds_snapshot();
+  fx_timebase = millis();
 }
 
 void update__HeartBeat() {
   s = segmntr.get_base_numel();
-  uint8_t iTry = 4;
 
-  // Start-up routine
-  if (fsm.timeInCurrentState() < 500) {
-    fadeToBlackBy(ledfx, FastLEDConfig::N, 8);
-    return;
-  }
-
-  switch (iTry) {
+  switch (2) {
     case 1:
       // Nice with segment style 5
       fadeToBlackBy(ledfx, s, 8);
-      // idx = ECG::idx * s / (ECG_N_SMP - 1);
+      ECG::idx = beat8(30, fx_timebase);
       idx = round((1 - ECG::wave[ECG::idx]) * (s - 1));
       ledfx[idx] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG::idx] * 200));
+      segmntr.process(ledfx_strip, ledfx);
+
+      fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
+      add_CRGB_arrays(leds, leds_snapshot, ledfx_strip, FastLEDConfig::N);
       break;
 
     case 2:
       fadeToBlackBy(ledfx, s, 8);
-      for (idx = 0; idx < s; idx++) {
-        uint8_t intens = round(ECG::wave[ECG::idx] * 100);
-        ledfx[idx] += CHSV(HUE_RED, 255, 0 + intens);
-      }
-      break;
-
-    case 3:
-      fadeToBlackBy(ledfx, s, 8);
-      for (idx = 0; idx < s; idx++) {
-        uint8_t intens = round(ECG::wave[ECG::idx] * 100);
-        if (intens > 30) {
-          ledfx[idx] += CHSV(HUE_RED, 255, intens);
-        }
-      }
-      break;
-
-    case 4:
-      fadeToBlackBy(ledfx, s, 8);
+      ECG::idx = beat8(30, fx_timebase);
       for (idx = 0; idx < s; idx++) {
         uint8_t intens = round(ECG::wave[ECG::idx] * 100);
         if (intens > 15) {
           ledfx[idx] += CHSV(HUE_RED, 255, intens);
         }
       }
+      segmntr.process(ledfx_strip, ledfx);
+
+      fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
+      add_CRGB_arrays(leds, leds_snapshot, ledfx_strip, FastLEDConfig::N);
       break;
   }
-
-  // Advance heart beat in time for next iteration
-  now = millis();
-  if (now - ECG::tick > ECG::idx_delay) {
-    ECG::idx = (ECG::idx + 1) % ECG_N_SMP;
-    ECG::tick = now;
-  }
-
-  segmntr.process(leds, ledfx);
 }
 
 State state__HeartBeat("HeartBeat", enter__HeartBeat, update__HeartBeat);
