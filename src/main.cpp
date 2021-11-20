@@ -141,10 +141,11 @@ void loop() {
     IR_dist = min(IR_dist, IR_MAX_DIST);
     IR_switch = (IR_dist < 20);
 
-    // Ser.println(IR_dist, 0);
+    /*
     Ser.print(A0);
     Ser.print("\t");
     Ser.println(IR_dist);
+    */
   }
   if (IR_switch) {
     update__FullWhite();
