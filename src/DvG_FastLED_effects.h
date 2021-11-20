@@ -26,13 +26,15 @@ CRGB ledfx[FastLEDConfig::N];         // Will be populated up to length `s`
 CRGB ledfx_strip[FastLEDConfig::N];   // Full strip after segmenter on `ledfx`
 
 FastLED_StripSegmenter segmntr;
-uint16_t s;
+uint16_t s; // Will hold `s = segmntr.get_base_numel()`
 
 // Animation
+// clang-format off
 extern uint8_t IR_dist; // Defined in `main.cpp`
 uint32_t fx_timebase = 0;
-uint8_t fx_hue = 0;
-float fx_hue_step = 1;
+uint8_t  fx_hue      = 0;
+float    fx_hue_step = 1;
+// clang-format on
 
 // State control
 bool effect_is_at_startup = false;
@@ -96,7 +98,7 @@ void enter__HeartBeat() {
 }
 
 void update__HeartBeat() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   uint8_t iTry = 4;
 
   // Start-up routine
@@ -163,26 +165,14 @@ State state__HeartBeat("HeartBeat", enter__HeartBeat, update__HeartBeat);
 
 void enter__Rainbow() {
   // segmntr.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
+  // segmntr.set_style(StyleEnum::COPIED_SIDES);
   fx_hue_step = 1;
 }
 
 void update__Rainbow() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   fill_rainbow(ledfx, s, fx_hue, 255 / (s - 1));
   fx_hue_step = beatsin16(10, 1, 20);
-  /*
-  if (fx_hue_step_up) {
-    fx_hue_step += 0.05;
-    if (fx_hue_step >= 20) {
-      fx_hue_step_up = false;
-    }
-  } else {
-    fx_hue_step -= 0.05;
-    if (fx_hue_step <= 1) {
-      fx_hue_step_up = true;
-    }
-  }
-  */
   segmntr.process(leds, ledfx);
 }
 
@@ -199,7 +189,7 @@ void enter__Sinelon() {
 }
 
 void update__Sinelon() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   fadeToBlackBy(ledfx, s, 4);
   idx = beatsin16(13, 0, s);
   ledfx[idx] += CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
@@ -219,7 +209,7 @@ void enter__BPM() {
 }
 
 void update__BPM() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   CRGBPalette16 palette = PartyColors_p; // RainbowColors_p; // PartyColors_p;
   uint8_t bpm_ = 30;
   uint8_t beat = beatsin8(bpm_, 64, 255);
@@ -243,7 +233,7 @@ void enter__Juggle() {
 }
 
 void update__Juggle() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   byte dothue = 0;
   fadeToBlackBy(ledfx, s, 20);
   for (int i = 0; i < 8; i++) {
@@ -264,7 +254,7 @@ void enter__FullWhite() {
 }
 
 void update__FullWhite() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   fill_solid(leds, FastLEDConfig::N, CRGB::White);
 }
 
@@ -287,7 +277,7 @@ void enter__Strobe() {
 }
 
 void update__Strobe() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   EVERY_N_MILLISECONDS(Strobe::T_flash_delay) {
     FastLED.showColor(CRGB::White);
     FastLED.show();
@@ -316,8 +306,8 @@ void enter__Dennis() {
 }
 
 void update__Dennis() {
+  s = segmntr.get_base_numel();
   // static uint8_t blend_amount = 0;
-  s = segmntr.get_base_pattern_numel();
 
   if (0) {
     // fill_solid(ledfx, FastLEDConfig::N, CRGB::Black);
@@ -368,7 +358,7 @@ void enter__TestPattern() {
 }
 
 void update__TestPattern() {
-  s = segmntr.get_base_pattern_numel();
+  s = segmntr.get_base_numel();
   for (idx = 0; idx < s; idx++) {
     ledfx[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
   }

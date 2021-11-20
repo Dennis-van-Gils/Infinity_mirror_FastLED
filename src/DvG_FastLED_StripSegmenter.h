@@ -66,7 +66,7 @@ private:
   int L = FastLEDConfig::L;
   int N = FastLEDConfig::N;
 
-  uint16_t s; // = get_base_pattern_numel()
+  uint16_t s; // = get_base_numel()
   StyleEnum _style;
 
   void flip(CRGB *out, const CRGB *in, uint16_t numel) {
@@ -104,7 +104,7 @@ public:
     Calculate the LED data array of the current effect, i.e. the base pattern.
     The array is calculated up to length `s` as dictated by the current
     StripSegmenter style.
-    s = segmntr.get_base_pattern_numel(); // CRITICAL
+    s = segmntr.get_base_numel(); // CRITICAL
     */
     uint16_t idx; // LED position index reused in the for-loops
 
@@ -382,10 +382,10 @@ public:
   }
 
   /*----------------------------------------------------------------------------
-    get_base_pattern_numel
+    get_base_numel
   ----------------------------------------------------------------------------*/
 
-  uint16_t get_base_pattern_numel() {
+  uint16_t get_base_numel() {
     /* Return the number of elements making up the base pattern befitting the
     current style.
      */
