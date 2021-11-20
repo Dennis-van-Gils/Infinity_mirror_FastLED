@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-17-11-2021
+20-11-2021
 */
 
 #include <Arduino.h>
@@ -17,22 +17,33 @@ Dennis van Gils
 
 FASTLED_USING_NAMESPACE
 
-// LED data of the full strip
-CRGB leds_strip[FastLEDConfig::N]; // WILL BE USED EXTERNALLY
+// clang-format off
 
-// LED data containing the base pattern to get copied/mirrored across by
-// the FastLED_Segmenter in either 1, 2 or 4-fold symmetry. This array will
-// receive the LED effect. The LED effect has to be calculated up to length `s`
-// as dictated by the current StripSegmenter style.
-CRGB leds[FastLEDConfig::N];    // WILL BE USED EXTERNALLY
-uint16_t s = FastLEDConfig::N;  // WILL BE USED EXTERNALLY
-FastLED_StripSegmenter segmntr; // WILL BE USED EXTERNALLY
+// LED data of the full strip to be send out
+CRGB leds[FastLEDConfig::N];  // EXTERNALLY modified by `DvG_FastLED_effects.h`
+
+extern FastLED_StripSegmenter segmntr;    // Defined in `DvG_FastLED_effects.h`
+extern uint8_t fx_hue;                    // Defined in `DvG_FastLED_effects.h`
+extern float fx_hue_step;                 // Defined in `DvG_FastLED_effects.h`
+
+// IR distance sensor
+// Sharp 2Y0A02, pin A0
+// Fit: distance [cm] = A / bitval ^ C - B, where bitval is at 10-bit
+#define A0_BITS 10
+uint8_t IR_dist = 0;      // [cm] // EXTERNALLY read by `DvG_FastLED_effects.h`
+const uint8_t IR_MIN_DIST = 16;   // [cm]
+const uint8_t IR_MAX_DIST = 150;  // [cm]
+const float   IR_CALIB_A = 1512.89;
+const uint8_t IR_CALIB_B = 74;
+const float   IR_CALIB_C = 0.424;
+
+// clang-format on
 
 #define Ser Serial
 DvG_SerialCommand sc(Ser); // Instantiate serial command listener
 
-/*-----------------------------------------------------------------------------
-  Finite State Machine managing all the effects
+/*------------------------------------------------------------------------------
+  Finite State Machine managing all the LED effects
 ------------------------------------------------------------------------------*/
 
 std::vector<State> states = {state__HeartBeat,  state__Dennis, state__Rainbow,
@@ -41,12 +52,11 @@ std::vector<State> states = {state__HeartBeat,  state__Dennis, state__Rainbow,
 
 char current_state_name[STATE_NAME_LEN] = {"\0"};
 bool state_has_changed = true;
-uint16_t state_idx = 0;
+uint16_t state_idx = 1;
 
-// FSM fsm = FSM(states[0]);
-FSM fsm = FSM(state__Rainbow);
+FSM fsm = FSM(states[state_idx]);
 
-/*-----------------------------------------------------------------------------
+/*------------------------------------------------------------------------------
   setup
 ------------------------------------------------------------------------------*/
 
@@ -62,19 +72,18 @@ void setup() {
   FastLED
       .addLeds<FastLEDConfig::LED_TYPE, FastLEDConfig::PIN_DATA,
                FastLEDConfig::PIN_CLK, FastLEDConfig::COLOR_ORDER,
-               DATA_RATE_MHZ(1)>(leds_strip, FastLEDConfig::N)
+               DATA_RATE_MHZ(1)>(leds, FastLEDConfig::N)
       .setCorrection(FastLEDConfig::COLOR_CORRECTION);
 
   FastLED.setBrightness(FastLEDConfig::BRIGHTNESS);
 
   fill_solid(leds, FastLEDConfig::N, CRGB::Black);
-  fill_solid(leds_strip, FastLEDConfig::N, CRGB::Black);
 
   // IR distance sensor
-  analogReadResolution(16);
+  analogReadResolution(A0_BITS);
 }
 
-/*-----------------------------------------------------------------------------
+/*------------------------------------------------------------------------------
   loop
 ------------------------------------------------------------------------------*/
 
@@ -114,16 +123,7 @@ void loop() {
     }
   }
 
-  // Calculate the LED data array of the current effect, i.e. the base pattern.
-  // The array is calculated up to length `s` as dictated by the current
-  // StripSegmenter style.
-  s = segmntr.get_base_pattern_numel(); // CRITICAL
-  /*
-  for (uint16_t idx = s; idx < FastLEDConfig::N; idx++) {
-    leds[idx] = CRGB::Black;
-  }
-  */
-  fsm.update();
+  fsm.update(); // CRITICAL
 
   if (state_has_changed) {
     state_has_changed = false;
@@ -132,28 +132,30 @@ void loop() {
     Ser.println(current_state_name);
   }
 
-  /* IR distance sensor
-    Sharp 2Y0A02
-    20 - 150 cm --> ~2.5 - ~0.4 V
-  */
+  // IR distance sensor
   static bool IR_switch = false;
   EVERY_N_MILLISECONDS(100) {
-    float A0_V = analogRead(PIN_A0) / 65535. * 3.3;
-    IR_switch = (A0_V > 2);
+    uint16_t A0 = analogRead(PIN_A0);
+    IR_dist = IR_CALIB_A / pow(A0, IR_CALIB_C) - IR_CALIB_B;
+    IR_dist = max(IR_dist, IR_MIN_DIST);
+    IR_dist = min(IR_dist, IR_MAX_DIST);
+    IR_switch = (IR_dist < 20);
+
+    // Ser.println(IR_dist, 0);
+    Ser.print(A0);
+    Ser.print("\t");
+    Ser.println(IR_dist);
   }
   if (IR_switch) {
     update__FullWhite();
   }
-
-  // Copy/mirror the effect across the full strip
-  segmntr.process(leds, leds_strip);
 
   // Keep the framerate modest and allow for brightness dithering.
   // Will also invoke FASTLED.show() - sending out the LED data - at least once.
   FastLED.delay(FastLEDConfig::DELAY);
 
   // Periodic updates
-  EVERY_N_MILLISECONDS(30) { iHue = iHue + hue_step; }
+  EVERY_N_MILLISECONDS(30) { fx_hue = fx_hue + fx_hue_step; }
 
   /*
   EVERY_N_SECONDS(24) { next_effect(); }
