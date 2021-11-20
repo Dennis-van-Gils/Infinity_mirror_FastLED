@@ -4,16 +4,15 @@
 #include <Arduino.h>
 
 namespace FastLEDConfig {
-  /* Infinity mirror, square with equal sides
+  /* Infinity mirror with 4 equal sides of length `L`.
 
-         L
-     ----------
-     |        |
-   L |        | L
-     |        |
-     ----------
-         L
-
+            L
+       ┌────<────┐
+       │         │
+    L  v         ^  L
+       │         │
+       0────>────┘
+            L
   */
 
   const int L = 13;    // Number of LEDs at each side of the square mirror
