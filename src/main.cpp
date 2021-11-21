@@ -25,6 +25,9 @@ extern uint8_t fx_hue;                   // Defined in `DvG_FastLED_effects.h`
 extern uint8_t fx_hue_step;              // Defined in `DvG_FastLED_effects.h`
 // clang-format on
 
+// Master switch to turn leds on/off
+bool led_output_is_on = true;
+
 #define Ser Serial
 
 #define USE_ANSI
@@ -160,6 +163,11 @@ void loop() {
       print_state();
       print_style();
 
+    } else if (charCmd == '`') {
+      led_output_is_on = !led_output_is_on;
+      Ser.print("Output ");
+      Ser.println(led_output_is_on ? "ON" : "OFF");
+
     } else if ((charCmd >= '0') & (charCmd <= '9')) {
       set_state(charCmd - '0');
 
@@ -187,13 +195,17 @@ void loop() {
     print_state();
   }
 
-  // Overrule
+  // Overrule any LED effect
   if (IR_dist < 20) {
-    update__FullWhite();
+    fill_solid(leds, FastLEDConfig::N, CRGB::White);
+  }
+  if (!led_output_is_on) {
+    fill_solid(leds, FastLEDConfig::N, CRGB::Black);
   }
 
-  // Keep the framerate modest and allow for brightness dithering.
-  // Will also invoke FastLED.show() - sending out the LED data - at least once.
+  // Send out LED data to the strip. `delay()` keeps the framerate modest and
+  // allows for brightness dithering. It will invoke FastLED.show() - sending
+  // out the LED data - at least once during the delay.
   FastLED.delay(FastLEDConfig::DELAY);
 
   // Periodic updates
