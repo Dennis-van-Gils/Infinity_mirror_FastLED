@@ -368,7 +368,9 @@ public:
     return _style;
   }
 
-  StyleEnum get_style() { return _style; }
+  StyleEnum get_style() {
+    return _style;
+  }
 
   void get_style_name(char buffer[STYLE_NAME_LEN]) {
     snprintf(buffer, STYLE_NAME_LEN, style_names[int(_style)]);

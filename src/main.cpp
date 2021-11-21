@@ -221,8 +221,12 @@ void loop() {
   }
 
   // Periodic updates
-  EVERY_N_MILLISECONDS(100) { update_IR_dist(); }
-  EVERY_N_SECONDS(20) { next_state(); }
+  EVERY_N_MILLISECONDS(100) {
+    update_IR_dist();
+  }
+  EVERY_N_SECONDS(20) {
+    next_state();
+  }
   /*
   EVERY_N_SECONDS(10) {
     segmntr1.next_style();

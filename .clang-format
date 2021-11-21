@@ -2,7 +2,7 @@
 BasedOnStyle: LLVM
 AccessModifierOffset: '-2'
 AllowShortBlocksOnASingleLine: 'true'
-AllowShortFunctionsOnASingleLine: Inline
+AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 BreakBeforeBraces: Attach
 ColumnLimit: '80'
