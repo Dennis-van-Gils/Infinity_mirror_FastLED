@@ -152,7 +152,7 @@ public:
           C           C
           B           D
           A           E     0 1 2 3 4 / 5 6 7 8 9 / 0 1 2 3 4 / 5 6 7 8 9
-            A B C D E    →  A	B	C	D	E	/ E	D	C	B	A	/ A	B	C	D	E	/ E	D	C	B	A
+            A B C D E    →  A B C D E / E D C B A / A B C D E / E D C B A
         */
         // clang-format off
         memcpy8(&out[0    ], &in[0] , CRGB_SIZE_L    ); // bottom
@@ -183,7 +183,7 @@ public:
           C           H
           B           G
           A           F     0 1 2 3 4 / 5 6 7 8 9 / 0 1 2 3 4 / 5 6 7 8 9
-            A B C D E    →  A	B	C	D	E	/ F	G	H	I	J	/ J	I	H	G	F	/ E	D	C	B	A
+            A B C D E    →  A B C D E / F G H I J / J I H G F / E D C B A
         */
         // clang-format off
         memcpy8(&out[0    ], &in[0], CRGB_SIZE_L * 2); // bottom & right
@@ -213,7 +213,7 @@ public:
           D           D
           C           C
           B           B     0 1 2 3 4 / 5 6 7 8 9 / 0 1 2 3 4 / 5 6 7 8 9
-            A A A A A    →  A	A	A	A	A	/ B	C	D	E	F	/ G	G	G	G	G	/ F	E	D	C	B
+            A A A A A    →  A A A A A / B C D E F / G G G G G / F E D C B
         */
         // clang-format off
         for (idx = 0; idx < L; idx++) {
@@ -247,7 +247,7 @@ public:
           D           D
           C           C
           B           B     0 1 2 3 4 / 5 6 7 8 9 / 0 1 2 3 4 / 5 6 7 8 9
-            A A A A A    →  A	A	A	A	A	/ B	C	D	C	B / A	A	A	A	A	/ B	C	D	C	B
+            A A A A A    →  A A A A A / B C D C B / A A A A A / B C D C B
 
           Note: Relies on integer math! No residuals.
           L = 4 -> s = 3
