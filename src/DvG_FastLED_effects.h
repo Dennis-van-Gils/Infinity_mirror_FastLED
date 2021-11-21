@@ -45,18 +45,18 @@ uint16_t s1; // Will hold `s1 = segmntr1.get_base_numel()`
 FastLED_StripSegmenter segmntr2;
 uint16_t s2; // Will hold `s2 = segmntr1.get_base_numel()`
 
-// Animation
+// Recurring animation variables
 // clang-format off
-extern uint8_t IR_dist; // Defined in `main.cpp`
-extern const uint8_t IR_MIN_DIST;
-extern const uint8_t IR_MAX_DIST;
+bool     fx_starting = false;
 uint32_t fx_timebase = 0;
 uint8_t  fx_hue      = 0;
 uint8_t  fx_hue_step = 1;
 // clang-format on
 
-// State control
-bool effect_is_at_startup = false;
+// IR distance sensor
+extern uint8_t IR_dist;           // Defined in `main.cpp`
+extern const uint8_t IR_MIN_DIST; // Defined in `main.cpp`
+extern const uint8_t IR_MAX_DIST; // Defined in `main.cpp`
 
 static uint16_t idx; // LED position index used in many for-loops
 
@@ -228,13 +228,15 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 
   FastLED's1 built-in rainbow generator
 ------------------------------------------------------------------------------*/
+// TODO: Make this a template for the rest
 
 void enter__Rainbow() {
-  // segmntr1.set_style(StyleEnum::COPIED_SIDES);
   segmntr1.set_style(StyleEnum::FULL_STRIP);
+
   create_leds_snapshot();
+  fx_starting = true;
   fx_hue = 0;
-  effect_is_at_startup = true;
+  fx_hue_step = 1;
 }
 
 void update__Rainbow() {
@@ -242,21 +244,21 @@ void update__Rainbow() {
   static uint8_t wave_idx;
   static uint8_t fx_blend;
 
-  if (effect_is_at_startup) {
+  if (fx_starting) {
+    fx_starting = false;
     wave_idx = 0;
     fx_blend = 0;
-    effect_is_at_startup = false;
-  }
-
-  EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
   }
 
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
   populate_fx1_strip();
 
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
+
+  EVERY_N_MILLIS(10) { fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5); }
   EVERY_N_MILLIS(50) {
-    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 9.) + 1;
+    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 15.) + 1;
+    fx_hue = fx_hue + fx_hue_step;
     wave_idx++;
   }
   EVERY_N_MILLIS(6) {
@@ -264,8 +266,6 @@ void update__Rainbow() {
       fx_blend++;
     }
   }
-
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
 }
 
 State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
@@ -326,6 +326,8 @@ void update__BPM() {
     fx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
                                 beat + 127. / (s1 - 1) * idx);
   }
+
+  EVERY_N_MILLISECONDS(30) { fx_hue = fx_hue + fx_hue_step; }
   segmntr1.process(leds, fx1);
 }
 
@@ -412,7 +414,7 @@ void enter__Dennis() {
   create_leds_snapshot();
 
   fx_timebase = millis();
-  effect_is_at_startup = true;
+  fx_starting = true;
 }
 
 void update__Dennis() {
@@ -432,8 +434,8 @@ void update__Dennis() {
   } else {
 
     /*
-    if (effect_is_at_startup) {
-      effect_is_at_startup = false;
+    if (fx_starting) {
+      fx_starting = false;
       blend_amount = 0;
     } else {
       if (blend_amount < 255) {

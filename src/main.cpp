@@ -20,11 +20,7 @@ FASTLED_USING_NAMESPACE
 // LED data of the full strip to be send out
 CRGB leds[FastLEDConfig::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
 
-// clang-format off
-extern FastLED_StripSegmenter segmntr1;  // Defined in `DvG_FastLED_effects.h`
-extern uint8_t fx_hue;                   // Defined in `DvG_FastLED_effects.h`
-extern uint8_t fx_hue_step;              // Defined in `DvG_FastLED_effects.h`
-// clang-format on
+extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 
 // Master switch to turn leds on/off
 bool led_output_is_on = true;
@@ -224,9 +220,6 @@ void loop() {
 
   // Periodic updates
   EVERY_N_MILLISECONDS(100) { update_IR_dist(); }
-  EVERY_N_MILLISECONDS(30) {
-    fx_hue = fx_hue + fx_hue_step;
-  } // TODO: move fully to `effects.h`
   EVERY_N_SECONDS(20) { next_state(); }
   /*
   EVERY_N_SECONDS(10) {
