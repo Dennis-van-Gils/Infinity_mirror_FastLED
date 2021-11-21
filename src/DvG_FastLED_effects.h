@@ -1,10 +1,19 @@
-/* DvG_LEDStripSegmentor.h
+/* DvG_FastLED_effects.h
 
-Great backgroun:
-https://github.com/FastLED/FastLED/wiki/Pixel-referenced
+Great background:
+  https://github.com/FastLED/FastLED/wiki/Pixel-referenced
+
+For inspiration:
+  https://github.com/kitesurfer1404/WS2812FX
+  https://www.youtube.com/watch?v=UZxY_BLSsGg&t=236s
+  https://gist.github.com/kriegsman/a916be18d32ec675fea8
+  
+FastLED API reference:
+  https://github.com/FastLED/FastLED/wiki
+  http://fastled.io/docs/3.1/
 
 Dennis van Gils
-20-11-2021
+21-11-2021
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H

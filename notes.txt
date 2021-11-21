@@ -1,25 +1,17 @@
-Arduino M0 Pro
+Adafruit Feather/ItsyBitsy M4 Express
 
 * RGB LED strip
 LS5RGB60 APA102 CP
 5 V, 5050
-Is a 'Dotstar' type
+'Dotstar' type
 LEDTUNING.NL
 
 --> strip direction -->
+
               pin
 VCC - Brown
-CLK - White   DIO 3
-DAT - Blue    DIO 2
+CLK - White   SPI_SCK
+DAT - Blue    SPI_MOSI
 GND - Black  
 
 Add a 1000µF (6.3V or higher) capacitor close to the strip between VCC and GND
-
-API reference and code tips:
-https://github.com/FastLED/FastLED/wiki
-http://fastled.io/docs/3.1/
-https://www.reddit.com/r/arduino/comments/4twynx/understanding_wave_fastled_wave_functions/
-
-MCU
-----
-

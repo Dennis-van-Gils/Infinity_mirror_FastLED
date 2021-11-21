@@ -1,10 +1,7 @@
 /* Infinity mirror
 
-TODO:
-x) Idea: https://gist.github.com/kriegsman/a916be18d32ec675fea8
-
 Dennis van Gils
-20-11-2021
+21-11-2021
 */
 
 #include <Arduino.h>
