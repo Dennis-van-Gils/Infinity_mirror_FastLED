@@ -116,7 +116,7 @@ void generate_HeartBeat() {
   // ECG action potential.
   generate_ECG(ECG::wave, ECG_N_SMP);
 
-  // Offset start of the ECG wave
+  // Offset the start of the ECG wave
   std::rotate(ECG::wave, ECG::wave + 44, ECG::wave + ECG_N_SMP);
 }
 
@@ -230,7 +230,7 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 ------------------------------------------------------------------------------*/
 
 void enter__Rainbow() {
-  //segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  // segmntr1.set_style(StyleEnum::COPIED_SIDES);
   segmntr1.set_style(StyleEnum::FULL_STRIP);
   fx_hue = 0;
   effect_is_at_startup = true;
