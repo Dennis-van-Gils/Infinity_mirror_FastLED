@@ -76,11 +76,11 @@ void update_IR_dist() {
 
 std::vector<State> states = {
     // state__TestPattern,
-    state__HeartBeat1, state__HeartBeat2, state__Dennis,
-    state__Rainbow,    state__BPM,        state__Sinelon};
+    state__HeartBeat1, state__Rainbow, state__BPM,    state__Dennis,
+    state__HeartBeat2, state__Rainbow, state__Sinelon};
 
 bool state_has_changed = true;
-uint16_t state_idx = 1;
+uint16_t state_idx = 0;
 
 FSM fsm = FSM(states[state_idx]);
 

@@ -159,12 +159,13 @@ void update__HeartBeat1() {
 ------------------------------------------------------------------------------*/
 
 void enter__HeartBeat2() {
-  segmntr1.set_style(StyleEnum::FULL_STRIP);
-  segmntr2.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
+  segmntr2.set_style(StyleEnum::FULL_STRIP);
   create_leds_snapshot();
   clear_CRGBs(fx1);
   clear_CRGBs(fx2);
   fx_timebase = millis();
+  fx_hue = 0;
 }
 
 void update__HeartBeat2() {
@@ -173,10 +174,16 @@ void update__HeartBeat2() {
   static uint8_t heart_rate = 30;
   uint8_t ECG_idx;
   uint8_t intens;
-  uint8_t hue_dist;
   uint16_t idx2;
 
   // Effect 1
+  idx = round(beatsin8(heart_rate / 2, 0, 255, fx_timebase) / 255. * (s1 - 1));
+  if ((idx < s1 / 4) | (idx > s1 * 3 / 4)) {
+    fx1[idx] = CRGB::Red;
+    // fx1[idx] += CHSV(HUE_RED, 255, intens);
+  }
+
+  // Effect 2
   ECG_idx = beat8(heart_rate, fx_timebase);
   intens = round(ECG::wave[ECG_idx] * 100);
 
@@ -189,34 +196,29 @@ void update__HeartBeat2() {
   }
   */
 
+  /*
   // Make hue depend on IR_dist
-  hue_dist =
+  fx_hue =
       200 - ((float)IR_dist - IR_MIN_DIST) / (IR_MAX_DIST - IR_MIN_DIST) * 200;
+  */
 
-  for (idx = 0; idx < s1; idx++) {
+  for (idx2 = 0; idx2 < s2; idx2++) {
     if (intens > 15) {
-      // fx1[idx] += CHSV(HUE_RED, 255, intens);
-      fx1[idx] += CHSV(hue_dist, 255, intens);
+      fx2[idx2] += CHSV(fx_hue, 255, intens);
     }
   }
 
-  // Effect 2
-  idx2 =
-      round(beat8(heart_rate / 2, fx_timebase) / 255. * (FastLEDConfig::N - 1));
-  fx2[idx2] = CRGB::White;
-  // fx2[idx2] += CHSV(HUE_RED, 255, 255);
-
   populate_fx1_strip();
   populate_fx2_strip();
-  rotate_strip_90(fx2_strip);
-  // add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
+  rotate_strip_90(fx1_strip);
+  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
 
   // Final mix
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
 
   EVERY_N_MILLIS(10) {
     fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
-    fadeToBlackBy(fx1, s1, 10);
+    fadeToBlackBy(fx1, s1, 20);
     fadeToBlackBy(fx2, s2, 10);
   }
 }
@@ -288,7 +290,7 @@ void update__Sinelon() {
   s1 = segmntr1.get_base_numel();
 
   idx = beatsin16(13, 0, s1, fx_timebase, 16384);
-  fx_hue = beat8(4, fx_timebase);
+  fx_hue = beat8(4, fx_timebase) + 127;
   fx1[idx] = CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
   populate_fx1_strip();
 
