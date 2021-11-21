@@ -34,10 +34,10 @@ extern CRGB leds[FastLEDConfig::N]; // Defined in `main.cpp`
 extern FSM fsm;                     // Defined in `main.cpp`
 
 CRGB leds_snapshot[FastLEDConfig::N]; // Snapshot in time
-CRGB ledfx1[FastLEDConfig::N];        // Will be populated up to length `s1`
-CRGB ledfx2[FastLEDConfig::N];        // Will be populated up to length `s2`
-CRGB ledfx1_strip[FastLEDConfig::N];  // Full strip after segmenter on `ledfx1`
-CRGB ledfx2_strip[FastLEDConfig::N];  // Full strip after segmenter on `ledfx2`
+CRGB fx1[FastLEDConfig::N];           // Will be populated up to length `s1`
+CRGB fx2[FastLEDConfig::N];           // Will be populated up to length `s2`
+CRGB fx1_strip[FastLEDConfig::N];     // Full strip after segmenter on `fx1`
+CRGB fx2_strip[FastLEDConfig::N];     // Full strip after segmenter on `fx2`
 
 FastLED_StripSegmenter segmntr1;
 uint16_t s1; // Will hold `s1 = segmntr1.get_base_numel()`
@@ -66,8 +66,8 @@ void create_leds_snapshot() {
   memcpy8(leds_snapshot, leds, CRGB_SIZE * FastLEDConfig::N);
 }
 
-void populate_ledfx1_strip() { segmntr1.process(ledfx1_strip, ledfx1); }
-void populate_ledfx2_strip() { segmntr2.process(ledfx2_strip, ledfx2); }
+void populate_fx1_strip() { segmntr1.process(fx1_strip, fx1); }
+void populate_fx2_strip() { segmntr2.process(fx2_strip, fx2); }
 
 void rotate_strip_90(CRGB *in) {
   std::rotate(in, in + FastLEDConfig::L, in + FastLEDConfig::N);
@@ -119,7 +119,7 @@ void enter__HeartBeat1() {
   segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
 
   create_leds_snapshot();
-  clear_CRGBs(ledfx1);
+  clear_CRGBs(fx1);
 
   fx_timebase = millis();
 }
@@ -127,15 +127,15 @@ void enter__HeartBeat1() {
 void update__HeartBeat1() {
   s1 = segmntr1.get_base_numel();
 
-  fadeToBlackBy(ledfx1, s1, 8);
+  fadeToBlackBy(fx1, s1, 8);
 
   uint8_t ECG_idx = beat8(30, fx_timebase);
   idx = round((1 - ECG::wave[ECG_idx]) * (s1 - 1));
-  ledfx1[idx] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
-  populate_ledfx1_strip();
+  fx1[idx] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
+  populate_fx1_strip();
 
   fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
-  add_CRGBs(leds_snapshot, ledfx1_strip, leds, FastLEDConfig::N);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
 }
 
 /*------------------------------------------------------------------------------
@@ -147,8 +147,8 @@ void enter__HeartBeat2() {
   segmntr2.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
 
   create_leds_snapshot();
-  clear_CRGBs(ledfx1);
-  clear_CRGBs(ledfx2);
+  clear_CRGBs(fx1);
+  clear_CRGBs(fx2);
 
   fx_timebase = millis();
 }
@@ -159,8 +159,8 @@ void update__HeartBeat2() {
   s2 = segmntr2.get_base_numel();
 
   fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
-  fadeToBlackBy(ledfx1, s1, 8);
-  fadeToBlackBy(ledfx2, s2, 8);
+  fadeToBlackBy(fx1, s1, 8);
+  fadeToBlackBy(fx2, s2, 8);
 
   // Effect 1
   uint8_t ECG_idx = beat8(heart_rate, fx_timebase);
@@ -168,24 +168,24 @@ void update__HeartBeat2() {
 
   for (idx = 0; idx < s1; idx++) {
     if (intens > 15) {
-      ledfx1[idx] += CHSV(HUE_RED, 255, intens);
+      fx1[idx] += CHSV(HUE_RED, 255, intens);
     }
   }
 
   // Effect 2
   uint16_t idx2 =
       round(beat8(heart_rate / 2, fx_timebase) / 255. * (FastLEDConfig::N - 1));
-  ledfx2[idx2] = CRGB::White;
-  // ledfx2[idx2] += CHSV(HUE_RED, 255, 255);
+  fx2[idx2] = CRGB::White;
+  // fx2[idx2] += CHSV(HUE_RED, 255, 255);
 
-  populate_ledfx1_strip();
-  populate_ledfx2_strip();
+  populate_fx1_strip();
+  populate_fx2_strip();
 
-  rotate_strip_90(ledfx2_strip);
-  add_CRGBs(ledfx1_strip, ledfx2_strip, ledfx1_strip, FastLEDConfig::N);
+  rotate_strip_90(fx2_strip);
+  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
 
   // Final mix
-  add_CRGBs(leds_snapshot, ledfx1_strip, leds, FastLEDConfig::N);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
 }
 
 State state__HeartBeat1("HeartBeat1", enter__HeartBeat1, update__HeartBeat1);
@@ -204,9 +204,9 @@ void enter__Rainbow() {
 
 void update__Rainbow() {
   s1 = segmntr1.get_base_numel();
-  fill_rainbow(ledfx1, s1, fx_hue, 255 / (s1 - 1));
+  fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
   fx_hue_step = beatsin16(10, 1, 20);
-  segmntr1.process(leds, ledfx1);
+  segmntr1.process(leds, fx1);
 }
 
 State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
@@ -223,10 +223,10 @@ void enter__Sinelon() {
 
 void update__Sinelon() {
   s1 = segmntr1.get_base_numel();
-  fadeToBlackBy(ledfx1, s1, 4);
+  fadeToBlackBy(fx1, s1, 4);
   idx = beatsin16(13, 0, s1);
-  ledfx1[idx] += CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
-  segmntr1.process(leds, ledfx1);
+  fx1[idx] += CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
+  segmntr1.process(leds, fx1);
 }
 
 State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
@@ -247,10 +247,10 @@ void update__BPM() {
   uint8_t bpm_ = 30;
   uint8_t beat = beatsin8(bpm_, 64, 255);
   for (idx = 0; idx < s1; idx++) {
-    ledfx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
-                                   beat + 127. / (s1 - 1) * idx);
+    fx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
+                                beat + 127. / (s1 - 1) * idx);
   }
-  segmntr1.process(leds, ledfx1);
+  segmntr1.process(leds, fx1);
 }
 
 State state__BPM("BPM", enter__BPM, update__BPM);
@@ -268,12 +268,12 @@ void enter__Juggle() {
 void update__Juggle() {
   s1 = segmntr1.get_base_numel();
   byte dothue = 0;
-  fadeToBlackBy(ledfx1, s1, 20);
+  fadeToBlackBy(fx1, s1, 20);
   for (int i = 0; i < 8; i++) {
-    ledfx1[beatsin16(i + 7, 0, s1 - 1)] |= CHSV(dothue, 200, 255);
+    fx1[beatsin16(i + 7, 0, s1 - 1)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
-  segmntr1.process(leds, ledfx1);
+  segmntr1.process(leds, fx1);
 }
 
 State state__Juggle("Juggle", enter__Juggle, update__Juggle);
@@ -329,7 +329,7 @@ State state__Strobe("Strobe", enter__Strobe, update__Strobe);
 void enter__Dennis() {
   // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
-  fill_solid(ledfx1, FastLEDConfig::N, CRGB::Black);
+  fill_solid(fx1, FastLEDConfig::N, CRGB::Black);
   create_leds_snapshot();
 
   fx_timebase = millis();
@@ -341,13 +341,13 @@ void update__Dennis() {
   // static uint8_t blend_amount = 0;
 
   if (0) {
-    // fill_solid(ledfx1, FastLEDConfig::N, CRGB::Black);
-    fadeToBlackBy(ledfx1, FastLEDConfig::N, 16);
+    // fill_solid(fx1, FastLEDConfig::N, CRGB::Black);
+    fadeToBlackBy(fx1, FastLEDConfig::N, 16);
 
     idx = beatsin16(15, 0, s1 - 1);
-    ledfx1[idx] = CRGB::Red;
-    ledfx1[s1 - idx - 1] = CRGB::OrangeRed;
-    segmntr1.process(leds, ledfx1);
+    fx1[idx] = CRGB::Red;
+    fx1[s1 - idx - 1] = CRGB::OrangeRed;
+    segmntr1.process(leds, fx1);
 
   } else {
 
@@ -362,15 +362,15 @@ void update__Dennis() {
     }
     */
 
-    fadeToBlackBy(ledfx1, s1, 12); // 16
+    fadeToBlackBy(fx1, s1, 12); // 16
 
     idx = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
-    ledfx1[idx] = CRGB::Red;
-    ledfx1[s1 - idx - 1] = CRGB::OrangeRed;
-    populate_ledfx1_strip();
+    fx1[idx] = CRGB::Red;
+    fx1[s1 - idx - 1] = CRGB::OrangeRed;
+    populate_fx1_strip();
 
     fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
-    blend_CRGBs(leds_snapshot, ledfx1_strip, leds, FastLEDConfig::N, 127);
+    blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, 127);
   }
 }
 
@@ -391,11 +391,11 @@ void enter__TestPattern() {
 void update__TestPattern() {
   s1 = segmntr1.get_base_numel();
   for (idx = 0; idx < s1; idx++) {
-    ledfx1[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
+    fx1[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
   }
-  ledfx1[0] = CRGB::Green;
-  ledfx1[s1 - 1] = CRGB::Red;
-  segmntr1.process(leds, ledfx1);
+  fx1[0] = CRGB::Green;
+  fx1[s1 - 1] = CRGB::Red;
+  segmntr1.process(leds, fx1);
 }
 
 State state__TestPattern("TestPattern", enter__TestPattern,
