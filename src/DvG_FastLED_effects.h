@@ -58,16 +58,18 @@ void create_leds_snapshot() {
   memcpy8(leds_snapshot, leds, CRGB_SIZE * FastLEDConfig::N);
 }
 
-void blend_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel,
-                 fract8 amount_of_2) {
-  for (uint16_t idx = 0; idx < numel; idx++) {
-    out[idx] = blend(in_1[idx], in_2[idx], amount_of_2);
-  }
-}
+void populate_ledfx_strip() { segmntr.process(ledfx_strip, ledfx); }
 
 void add_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel) {
   for (uint16_t idx = 0; idx < numel; idx++) {
     out[idx] = in_1[idx] + in_2[idx];
+  }
+}
+
+void blend_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel,
+                 fract8 amount_of_2) {
+  for (uint16_t idx = 0; idx < numel; idx++) {
+    out[idx] = blend(in_1[idx], in_2[idx], amount_of_2);
   }
 }
 
@@ -79,8 +81,6 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   }
   return true;
 }
-
-void populate_ledfx_strip() { segmntr.process(ledfx_strip, ledfx); }
 
 /*------------------------------------------------------------------------------
   HeartBeat
