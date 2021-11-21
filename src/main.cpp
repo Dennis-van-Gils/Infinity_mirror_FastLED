@@ -154,7 +154,8 @@ void setup() {
 ------------------------------------------------------------------------------*/
 
 void loop() {
-  char charCmd; // Incoming serial command
+  char charCmd;                    // Incoming serial command
+  static uint32_t tick = millis(); // Keep track of frame rate
 
   if (Ser.available() > 0) {
     charCmd = Serial.read();
@@ -196,9 +197,6 @@ void loop() {
   }
 
   // Overrule any LED effect
-  if (IR_dist < 20) {
-    fill_solid(leds, FastLEDConfig::N, CRGB::White);
-  }
   if (!led_output_is_on) {
     fill_solid(leds, FastLEDConfig::N, CRGB::Black);
   }
@@ -207,6 +205,12 @@ void loop() {
   // allows for brightness dithering. It will invoke FastLED.show() - sending
   // out the LED data - at least once during the delay.
   FastLED.delay(FastLEDConfig::DELAY);
+
+  // DEBUG frame rate
+  if (led_output_is_on & 0) {
+    Ser.println(millis() - tick);
+    tick = millis();
+  }
 
   // Periodic updates
   EVERY_N_MILLISECONDS(100) { update_IR_dist(); }
