@@ -230,16 +230,28 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 ------------------------------------------------------------------------------*/
 
 void enter__Rainbow() {
-  // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
-  segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  //segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  segmntr1.set_style(StyleEnum::FULL_STRIP);
   fx_hue = 0;
-  fx_timebase = millis();
+  effect_is_at_startup = true;
 }
 
 void update__Rainbow() {
   s1 = segmntr1.get_base_numel();
+  static uint8_t wave_idx;
+
+  if (effect_is_at_startup) {
+    wave_idx = 0;
+    effect_is_at_startup = false;
+  }
+
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
-  fx_hue_step = beatsin8(10, 1, 20, fx_timebase, 191);
+
+  EVERY_N_MILLIS(50) {
+    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 15.) + 1;
+    wave_idx++;
+  }
+
   segmntr1.process(leds, fx1);
 }
 
