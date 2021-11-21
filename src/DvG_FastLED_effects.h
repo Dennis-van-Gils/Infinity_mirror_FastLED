@@ -7,7 +7,7 @@ For inspiration:
   https://github.com/kitesurfer1404/WS2812FX
   https://www.youtube.com/watch?v=UZxY_BLSsGg&t=236s
   https://gist.github.com/kriegsman/a916be18d32ec675fea8
-  
+
 FastLED API reference:
   https://github.com/FastLED/FastLED/wiki
   http://fastled.io/docs/3.1/
@@ -58,15 +58,14 @@ void create_leds_snapshot() {
   memcpy8(leds_snapshot, leds, CRGB_SIZE * FastLEDConfig::N);
 }
 
-void blend_CRGB_arrays(CRGB *out, const CRGB *in_1, const CRGB *in_2,
-                       uint16_t numel, fract8 amount_of_2) {
+void blend_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel,
+                 fract8 amount_of_2) {
   for (uint16_t idx = 0; idx < numel; idx++) {
     out[idx] = blend(in_1[idx], in_2[idx], amount_of_2);
   }
 }
 
-void add_CRGB_arrays(CRGB *out, const CRGB *in_1, const CRGB *in_2,
-                     uint16_t numel) {
+void add_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel) {
   for (uint16_t idx = 0; idx < numel; idx++) {
     out[idx] = in_1[idx] + in_2[idx];
   }
@@ -80,6 +79,8 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   }
   return true;
 }
+
+void populate_ledfx_strip() { segmntr.process(ledfx_strip, ledfx); }
 
 /*------------------------------------------------------------------------------
   HeartBeat
@@ -116,25 +117,25 @@ void update__HeartBeat() {
       ECG::idx = beat8(30, fx_timebase);
       idx = round((1 - ECG::wave[ECG::idx]) * (s - 1));
       ledfx[idx] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG::idx] * 200));
-      segmntr.process(ledfx_strip, ledfx);
+      populate_ledfx_strip();
 
       fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
-      add_CRGB_arrays(leds, leds_snapshot, ledfx_strip, FastLEDConfig::N);
+      add_CRGBs(leds_snapshot, ledfx_strip, leds, FastLEDConfig::N);
       break;
 
     case 2:
       fadeToBlackBy(ledfx, s, 8);
       ECG::idx = beat8(30, fx_timebase);
+      uint8_t intens = round(ECG::wave[ECG::idx] * 100);
       for (idx = 0; idx < s; idx++) {
-        uint8_t intens = round(ECG::wave[ECG::idx] * 100);
         if (intens > 15) {
           ledfx[idx] += CHSV(HUE_RED, 255, intens);
         }
       }
-      segmntr.process(ledfx_strip, ledfx);
+      populate_ledfx_strip();
 
       fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
-      add_CRGB_arrays(leds, leds_snapshot, ledfx_strip, FastLEDConfig::N);
+      add_CRGBs(leds_snapshot, ledfx_strip, leds, FastLEDConfig::N);
       break;
   }
 }
@@ -278,11 +279,9 @@ State state__Strobe("Strobe", enter__Strobe, update__Strobe);
 
 void enter__Dennis() {
   // segmntr.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
-  // fill_solid(ledfx, FastLEDConfig::N, CRGB::Black);
-  fill_solid(ledfx, FastLEDConfig::N, CRGB::Black);
-  fill_rainbow(leds_snapshot, FastLEDConfig::N, fx_hue,
-               255 / (FastLEDConfig::N - 1));
   segmntr.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
+  fill_solid(ledfx, FastLEDConfig::N, CRGB::Black);
+  create_leds_snapshot();
 
   fx_timebase = millis();
   effect_is_at_startup = true;
@@ -319,10 +318,10 @@ void update__Dennis() {
     idx = beatsin16(15, 0, s - 1, fx_timebase); // 15
     ledfx[idx] = CRGB::Red;
     ledfx[s - idx - 1] = CRGB::OrangeRed;
-    segmntr.process(ledfx_strip, ledfx);
+    populate_ledfx_strip();
 
     fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
-    blend_CRGB_arrays(leds, leds_snapshot, ledfx_strip, FastLEDConfig::N, 127);
+    blend_CRGBs(leds_snapshot, ledfx_strip, leds, FastLEDConfig::N, 127);
   }
 }
 
