@@ -214,7 +214,7 @@ void update__HeartBeat2() {
   populate_fx2_strip();
 
   rotate_strip_90(fx2_strip);
-  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
+  // add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
 
   // Final mix
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
@@ -248,7 +248,7 @@ void update__Rainbow() {
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
 
   EVERY_N_MILLIS(50) {
-    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 15.) + 1;
+    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 9.) + 1;
     wave_idx++;
   }
 
@@ -264,17 +264,28 @@ State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
 ------------------------------------------------------------------------------*/
 
 void enter__Sinelon() {
-  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+
+  create_leds_snapshot();
+  clear_CRGBs(fx1);
+
+  fx_timebase = millis();
 }
 
 void update__Sinelon() {
   s1 = segmntr1.get_base_numel();
 
-  EVERY_N_MILLIS(10) { fadeToBlackBy(fx1, s1, 5); }
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(fx1, s1, 5);
+  }
 
-  idx = beatsin16(13, 0, s1);
-  fx1[idx] += CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
-  segmntr1.process(leds, fx1);
+  idx = beatsin16(13, 0, s1, fx_timebase, 16384);
+  fx_hue = beat8(4, fx_timebase);
+  fx1[idx] = CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
+  populate_fx1_strip();
+
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
 }
 
 State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
@@ -382,7 +393,8 @@ State state__Strobe("Strobe", enter__Strobe, update__Strobe);
 
 void enter__Dennis() {
   // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
-  segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
+  // segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
+  segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
   fill_solid(fx1, FastLEDConfig::N, CRGB::Black);
   create_leds_snapshot();
 
