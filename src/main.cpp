@@ -224,7 +224,9 @@ void loop() {
 
   // Periodic updates
   EVERY_N_MILLISECONDS(100) { update_IR_dist(); }
-  EVERY_N_MILLISECONDS(30) { fx_hue = fx_hue + fx_hue_step; }
+  EVERY_N_MILLISECONDS(30) {
+    fx_hue = fx_hue + fx_hue_step;
+  } // TODO: move fully to `effects.h`
   EVERY_N_SECONDS(20) { next_state(); }
   /*
   EVERY_N_SECONDS(10) {

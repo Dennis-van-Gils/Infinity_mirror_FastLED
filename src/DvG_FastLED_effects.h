@@ -310,7 +310,7 @@ State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 ------------------------------------------------------------------------------*/
 
 void enter__BPM() {
-  // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+  segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   fx_hue = 0;
   fx_hue_step = 1;
 }
