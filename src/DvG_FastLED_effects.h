@@ -128,7 +128,6 @@ void generate_HeartBeat() {
 
 void enter__HeartBeat1() {
   segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
@@ -162,7 +161,6 @@ void update__HeartBeat1() {
 void enter__HeartBeat2() {
   segmntr1.set_style(StyleEnum::FULL_STRIP);
   segmntr2.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-
   create_leds_snapshot();
   clear_CRGBs(fx1);
   clear_CRGBs(fx2);
@@ -234,7 +232,6 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 
 void enter__Rainbow() {
   segmntr1.set_style(StyleEnum::FULL_STRIP);
-
   create_leds_snapshot();
   fx_starting = true;
   fx_hue = 0;
@@ -282,7 +279,6 @@ State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
 
 void enter__Sinelon() {
   segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
@@ -313,9 +309,10 @@ State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 ------------------------------------------------------------------------------*/
 
 void enter__BPM() {
+  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
   segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
-
   create_leds_snapshot();
+  fx_timebase = millis();
   fx_hue = 0;
   fx_hue_step = 1;
 }
@@ -326,12 +323,13 @@ void update__BPM() {
   static uint8_t bpm = 30;
   uint8_t beat;
 
-  beat = beatsin8(bpm, 64, 255);
+  beat = beatsin8(bpm, 64, 255, fx_timebase);
   for (idx = 0; idx < s1; idx++) {
     fx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
                                 beat + 127. / (s1 - 1) * idx);
   }
   populate_fx1_strip();
+  rotate_strip_90(fx1);
 
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
 
@@ -423,7 +421,6 @@ void enter__Dennis() {
   // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   // segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
-
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_starting = true;
