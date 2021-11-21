@@ -39,26 +39,28 @@ CRGB fx2[FastLEDConfig::N];           // Will be populated up to length `s2`
 CRGB fx1_strip[FastLEDConfig::N];     // Full strip after segmenter on `fx1`
 CRGB fx2_strip[FastLEDConfig::N];     // Full strip after segmenter on `fx2`
 
-FastLED_StripSegmenter segmntr1;
-uint16_t s1; // Will hold `s1 = segmntr1.get_base_numel()`
+FastLED_StripSegmenter segmntr1; // Segmenter operating on `fx1`
+static uint16_t s1; // Will hold `s1 = segmntr1.get_base_numel()` for `fx1`
 
-FastLED_StripSegmenter segmntr2;
-uint16_t s2; // Will hold `s2 = segmntr1.get_base_numel()`
+FastLED_StripSegmenter segmntr2; // Segmenter operating on fx2
+static uint16_t s2; // Will hold `s2 = segmntr1.get_base_numel()` for `fx2`
 
 // Recurring animation variables
 // clang-format off
-bool     fx_starting = false;
-uint32_t fx_timebase = 0;
-uint8_t  fx_hue      = 0;
-uint8_t  fx_hue_step = 1;
+static uint16_t idx1; // LED position index used for `fx1`
+static uint16_t idx2; // LED position index used for `fx2`
+static bool     fx_starting = false;
+static uint32_t fx_timebase = 0;
+static uint8_t  fx_hue      = 0;
+static uint8_t  fx_hue_step = 1;
+static uint8_t  fx_intens   = 255;
+static uint8_t  fx_blend    = 127;
 // clang-format on
 
 // IR distance sensor
 extern uint8_t IR_dist;           // Defined in `main.cpp`
 extern const uint8_t IR_MIN_DIST; // Defined in `main.cpp`
 extern const uint8_t IR_MAX_DIST; // Defined in `main.cpp`
-
-static uint16_t idx; // LED position index used in many for-loops
 
 /*------------------------------------------------------------------------------
   CRGB array functions
@@ -142,8 +144,8 @@ void update__HeartBeat1() {
   ECG_ampl = ECG::wave[ECG_idx];
   ECG_ampl = max(ECG_ampl, 0.12); // Suppress ECG depolarization from the wave
 
-  idx = round((1 - ECG_ampl) * (s1 - 1));
-  fx1[idx] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
+  idx1 = round((1 - ECG_ampl) * (s1 - 1));
+  fx1[idx1] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
   populate_fx1_strip();
 
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
@@ -173,19 +175,17 @@ void update__HeartBeat2() {
   s2 = segmntr2.get_base_numel();
   static uint8_t heart_rate = 30;
   uint8_t ECG_idx;
-  uint8_t intens;
-  uint16_t idx2;
 
   // Effect 1
-  idx = round(beatsin8(heart_rate / 2, 0, 255, fx_timebase) / 255. * (s1 - 1));
-  if ((idx < s1 / 4) | (idx > s1 * 3 / 4)) {
-    fx1[idx] = CRGB::Red;
-    // fx1[idx] += CHSV(HUE_RED, 255, intens);
+  idx1 = round(beatsin8(heart_rate / 2, 0, 255, fx_timebase) / 255. * (s1 - 1));
+  if ((idx1 < s1 / 4) | (idx1 > s1 * 3 / 4)) {
+    fx1[idx1] = CRGB::Red;
+    // fx1[idx1] += CHSV(HUE_RED, 255, fx_intens);
   }
 
   // Effect 2
   ECG_idx = beat8(heart_rate, fx_timebase);
-  intens = round(ECG::wave[ECG_idx] * 100);
+  fx_intens = round(ECG::wave[ECG_idx] * 100);
 
   /*
   // Make heart rate depend on IR_dist
@@ -203,8 +203,8 @@ void update__HeartBeat2() {
   */
 
   for (idx2 = 0; idx2 < s2; idx2++) {
-    if (intens > 15) {
-      fx2[idx2] += CHSV(fx_hue, 255, intens);
+    if (fx_intens > 15) {
+      fx2[idx2] += CHSV(fx_hue, 255, fx_intens);
     }
   }
 
@@ -238,17 +238,16 @@ void enter__Rainbow() {
   fx_starting = true;
   fx_hue = 0;
   fx_hue_step = 1;
+  fx_blend = 0;
 }
 
 void update__Rainbow() {
   s1 = segmntr1.get_base_numel();
   static uint8_t wave_idx;
-  static uint8_t fx_blend;
 
   if (fx_starting) {
     fx_starting = false;
     wave_idx = 0;
-    fx_blend = 0;
   }
 
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
@@ -289,9 +288,9 @@ void enter__Sinelon() {
 void update__Sinelon() {
   s1 = segmntr1.get_base_numel();
 
-  idx = beatsin16(13, 0, s1, fx_timebase, 16384);
+  idx1 = beatsin16(13, 0, s1, fx_timebase, 16384);
   fx_hue = beat8(4, fx_timebase) + 127;
-  fx1[idx] = CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
+  fx1[idx1] = CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
   populate_fx1_strip();
 
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
@@ -326,9 +325,9 @@ void update__BPM() {
   uint8_t beat;
 
   beat = beatsin8(bpm, 64, 255, fx_timebase);
-  for (idx = 0; idx < s1; idx++) {
-    fx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
-                                beat + 127. / (s1 - 1) * idx);
+  for (idx1 = 0; idx1 < s1; idx1++) {
+    fx1[idx1] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx1,
+                                 beat + 127. / (s1 - 1) * idx1);
   }
   populate_fx1_strip();
   rotate_strip_90(fx1);
@@ -425,22 +424,16 @@ void enter__Dennis() {
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
   create_leds_snapshot();
   clear_CRGBs(fx1);
-  fx_starting = true;
   fx_timebase = millis();
+  fx_blend = 0;
 }
 
 void update__Dennis() {
   s1 = segmntr1.get_base_numel();
-  static uint8_t fx_blend;
 
-  if (fx_starting) {
-    fx_starting = false;
-    fx_blend = 0;
-  }
-
-  idx = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
-  fx1[idx] = CRGB::Red;
-  fx1[s1 - idx - 1] = CRGB::OrangeRed;
+  idx1 = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
+  fx1[idx1] = CRGB::Red;
+  fx1[s1 - idx1 - 1] = CRGB::OrangeRed;
   populate_fx1_strip();
 
   blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
@@ -470,8 +463,8 @@ void enter__TestPattern() {
 
 void update__TestPattern() {
   s1 = segmntr1.get_base_numel();
-  for (idx = 0; idx < s1; idx++) {
-    fx1[idx] = (idx % 2 ? CRGB::Blue : CRGB::Yellow);
+  for (idx1 = 0; idx1 < s1; idx1++) {
+    fx1[idx1] = (idx1 % 2 ? CRGB::Blue : CRGB::Yellow);
   }
   fx1[0] = CRGB::Green;
   fx1[s1 - 1] = CRGB::Red;
