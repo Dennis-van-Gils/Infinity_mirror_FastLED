@@ -48,6 +48,8 @@ uint16_t s2; // Will hold `s2 = segmntr1.get_base_numel()`
 // Animation
 // clang-format off
 extern uint8_t IR_dist; // Defined in `main.cpp`
+extern const uint8_t IR_MIN_DIST;
+extern const uint8_t IR_MAX_DIST;
 uint32_t fx_timebase = 0;
 uint8_t  fx_hue      = 0;
 uint8_t  fx_hue_step = 1;
@@ -113,6 +115,9 @@ void generate_HeartBeat() {
   // state of the heart is somewhere above 0. 0 is simply the minimum of the
   // ECG action potential.
   generate_ECG(ECG::wave, ECG_N_SMP);
+
+  // Offset start of the ECG wave
+  std::rotate(ECG::wave, ECG::wave + 44, ECG::wave + ECG_N_SMP);
 }
 
 void enter__HeartBeat1() {
@@ -126,15 +131,22 @@ void enter__HeartBeat1() {
 
 void update__HeartBeat1() {
   s1 = segmntr1.get_base_numel();
+  uint8_t ECG_idx;
+  float ECG_ampl;
 
-  fadeToBlackBy(fx1, s1, 8);
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(fx1, s1, 10);
+  }
 
-  uint8_t ECG_idx = beat8(30, fx_timebase);
-  idx = round((1 - ECG::wave[ECG_idx]) * (s1 - 1));
+  ECG_idx = beat8(30, fx_timebase);
+  ECG_ampl = ECG::wave[ECG_idx];
+  ECG_ampl = max(ECG_ampl, 0.12); // Suppress ECG depolarization from the wave
+
+  idx = round((1 - ECG_ampl) * (s1 - 1));
   fx1[idx] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
   populate_fx1_strip();
 
-  fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
 }
 
@@ -154,26 +166,46 @@ void enter__HeartBeat2() {
 }
 
 void update__HeartBeat2() {
-  static uint8_t heart_rate = 30;
   s1 = segmntr1.get_base_numel();
   s2 = segmntr2.get_base_numel();
+  static uint8_t heart_rate = 30;
+  uint8_t ECG_idx;
+  uint8_t intens;
+  uint8_t hue_dist;
+  uint16_t idx2;
 
-  fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 4);
-  fadeToBlackBy(fx1, s1, 8);
-  fadeToBlackBy(fx2, s2, 8);
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(fx1, s1, 10);
+    fadeToBlackBy(fx2, s2, 10);
+  }
 
   // Effect 1
-  uint8_t ECG_idx = beat8(heart_rate, fx_timebase);
-  uint8_t intens = round(ECG::wave[ECG_idx] * 100);
+  ECG_idx = beat8(heart_rate, fx_timebase);
+  intens = round(ECG::wave[ECG_idx] * 100);
+
+  /*
+  // Make heart rate depend on IR_dist
+  // Is hard to keep beats to start at the start
+  if (ECG_idx == 255){
+    heart_rate = floor(((uint16_t) IR_dist * 2) / 2); // Ensure even
+    fx_timebase = millis();
+  }
+  */
+
+  // Make hue depend on IR_dist
+  hue_dist =
+      200 - ((float)IR_dist - IR_MIN_DIST) / (IR_MAX_DIST - IR_MIN_DIST) * 200;
 
   for (idx = 0; idx < s1; idx++) {
     if (intens > 15) {
-      fx1[idx] += CHSV(HUE_RED, 255, intens);
+      // fx1[idx] += CHSV(HUE_RED, 255, intens);
+      fx1[idx] += CHSV(hue_dist, 255, intens);
     }
   }
 
   // Effect 2
-  uint16_t idx2 =
+  idx2 =
       round(beat8(heart_rate / 2, fx_timebase) / 255. * (FastLEDConfig::N - 1));
   fx2[idx2] = CRGB::White;
   // fx2[idx2] += CHSV(HUE_RED, 255, 255);
@@ -199,13 +231,15 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 
 void enter__Rainbow() {
   // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
-  // segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  fx_hue = 0;
+  fx_timebase = millis();
 }
 
 void update__Rainbow() {
   s1 = segmntr1.get_base_numel();
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
-  fx_hue_step = beatsin16(10, 1, 20);
+  fx_hue_step = beatsin8(10, 1, 20, fx_timebase, 191);
   segmntr1.process(leds, fx1);
 }
 
@@ -223,7 +257,9 @@ void enter__Sinelon() {
 
 void update__Sinelon() {
   s1 = segmntr1.get_base_numel();
-  fadeToBlackBy(fx1, s1, 4);
+
+  EVERY_N_MILLIS(10) { fadeToBlackBy(fx1, s1, 5); }
+
   idx = beatsin16(13, 0, s1);
   fx1[idx] += CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
   segmntr1.process(leds, fx1);
@@ -239,13 +275,17 @@ State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 
 void enter__BPM() {
   // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+  fx_hue = 0;
+  fx_hue_step = 1;
 }
 
 void update__BPM() {
   s1 = segmntr1.get_base_numel();
   CRGBPalette16 palette = PartyColors_p; // RainbowColors_p; // PartyColors_p;
-  uint8_t bpm_ = 30;
-  uint8_t beat = beatsin8(bpm_, 64, 255);
+  static uint8_t bpm = 30;
+  uint8_t beat;
+
+  beat = beatsin8(bpm, 64, 255);
   for (idx = 0; idx < s1; idx++) {
     fx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
                                 beat + 127. / (s1 - 1) * idx);
@@ -268,7 +308,9 @@ void enter__Juggle() {
 void update__Juggle() {
   s1 = segmntr1.get_base_numel();
   byte dothue = 0;
-  fadeToBlackBy(fx1, s1, 20);
+
+  EVERY_N_MILLIS(10) { fadeToBlackBy(fx1, s1, 24); }
+
   for (int i = 0; i < 8; i++) {
     fx1[beatsin16(i + 7, 0, s1 - 1)] |= CHSV(dothue, 200, 255);
     dothue += 32;
@@ -342,7 +384,8 @@ void update__Dennis() {
 
   if (0) {
     // fill_solid(fx1, FastLEDConfig::N, CRGB::Black);
-    fadeToBlackBy(fx1, FastLEDConfig::N, 16);
+
+    EVERY_N_MILLIS(10) { fadeToBlackBy(fx1, FastLEDConfig::N, 19); }
 
     idx = beatsin16(15, 0, s1 - 1);
     fx1[idx] = CRGB::Red;
@@ -362,14 +405,16 @@ void update__Dennis() {
     }
     */
 
-    fadeToBlackBy(fx1, s1, 12); // 16
+    EVERY_N_MILLIS(10) {
+      fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
+      fadeToBlackBy(fx1, s1, 14);
+    }
 
     idx = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
     fx1[idx] = CRGB::Red;
     fx1[s1 - idx - 1] = CRGB::OrangeRed;
     populate_fx1_strip();
 
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
     blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, 127);
   }
 }
