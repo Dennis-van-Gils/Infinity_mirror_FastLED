@@ -131,7 +131,6 @@ void enter__HeartBeat1() {
 
   create_leds_snapshot();
   clear_CRGBs(fx1);
-
   fx_timebase = millis();
 }
 
@@ -139,11 +138,6 @@ void update__HeartBeat1() {
   s1 = segmntr1.get_base_numel();
   uint8_t ECG_idx;
   float ECG_ampl;
-
-  EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
-    fadeToBlackBy(fx1, s1, 10);
-  }
 
   ECG_idx = beat8(30, fx_timebase);
   ECG_ampl = ECG::wave[ECG_idx];
@@ -154,6 +148,11 @@ void update__HeartBeat1() {
   populate_fx1_strip();
 
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(fx1, s1, 10);
+  }
 }
 
 /*------------------------------------------------------------------------------
@@ -167,7 +166,6 @@ void enter__HeartBeat2() {
   create_leds_snapshot();
   clear_CRGBs(fx1);
   clear_CRGBs(fx2);
-
   fx_timebase = millis();
 }
 
@@ -179,12 +177,6 @@ void update__HeartBeat2() {
   uint8_t intens;
   uint8_t hue_dist;
   uint16_t idx2;
-
-  EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
-    fadeToBlackBy(fx1, s1, 10);
-    fadeToBlackBy(fx2, s2, 10);
-  }
 
   // Effect 1
   ECG_idx = beat8(heart_rate, fx_timebase);
@@ -218,12 +210,17 @@ void update__HeartBeat2() {
 
   populate_fx1_strip();
   populate_fx2_strip();
-
   rotate_strip_90(fx2_strip);
   // add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
 
   // Final mix
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(fx1, s1, 10);
+    fadeToBlackBy(fx2, s2, 10);
+  }
 }
 
 State state__HeartBeat1("HeartBeat1", enter__HeartBeat1, update__HeartBeat1);
@@ -234,7 +231,6 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 
   FastLED's1 built-in rainbow generator
 ------------------------------------------------------------------------------*/
-// TODO: Make this a template for the rest
 
 void enter__Rainbow() {
   segmntr1.set_style(StyleEnum::FULL_STRIP);
@@ -261,7 +257,9 @@ void update__Rainbow() {
 
   blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
 
-  EVERY_N_MILLIS(10) { fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5); }
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+  }
   EVERY_N_MILLIS(50) {
     fx_hue_step = round(cubicwave8(wave_idx) / 255. * 15.) + 1;
     fx_hue = fx_hue + fx_hue_step;
@@ -287,17 +285,11 @@ void enter__Sinelon() {
 
   create_leds_snapshot();
   clear_CRGBs(fx1);
-
   fx_timebase = millis();
 }
 
 void update__Sinelon() {
   s1 = segmntr1.get_base_numel();
-
-  EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
-    fadeToBlackBy(fx1, s1, 5);
-  }
 
   idx = beatsin16(13, 0, s1, fx_timebase, 16384);
   fx_hue = beat8(4, fx_timebase);
@@ -305,6 +297,11 @@ void update__Sinelon() {
   populate_fx1_strip();
 
   add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(fx1, s1, 5);
+  }
 }
 
 State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
@@ -317,6 +314,8 @@ State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 
 void enter__BPM() {
   segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+
+  create_leds_snapshot();
   fx_hue = 0;
   fx_hue_step = 1;
 }
@@ -332,9 +331,16 @@ void update__BPM() {
     fx1[idx] = ColorFromPalette(palette, fx_hue + 128. / (s1 - 1) * idx,
                                 beat + 127. / (s1 - 1) * idx);
   }
+  populate_fx1_strip();
 
-  EVERY_N_MILLISECONDS(30) { fx_hue = fx_hue + fx_hue_step; }
-  segmntr1.process(leds, fx1);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+  }
+  EVERY_N_MILLISECONDS(30) {
+    fx_hue = fx_hue + fx_hue_step;
+  }
 }
 
 State state__BPM("BPM", enter__BPM, update__BPM);
@@ -353,13 +359,15 @@ void update__Juggle() {
   s1 = segmntr1.get_base_numel();
   byte dothue = 0;
 
-  EVERY_N_MILLIS(10) { fadeToBlackBy(fx1, s1, 24); }
-
   for (int i = 0; i < 8; i++) {
     fx1[beatsin16(i + 7, 0, s1 - 1)] |= CHSV(dothue, 200, 255);
     dothue += 32;
   }
   segmntr1.process(leds, fx1);
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(fx1, s1, 24);
+  }
 }
 
 State state__Juggle("Juggle", enter__Juggle, update__Juggle);
@@ -373,7 +381,6 @@ void enter__FullWhite() {
 }
 
 void update__FullWhite() {
-  s1 = segmntr1.get_base_numel();
   fill_solid(leds, FastLEDConfig::N, CRGB::White);
 }
 
@@ -416,51 +423,35 @@ void enter__Dennis() {
   // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   // segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
-  fill_solid(fx1, FastLEDConfig::N, CRGB::Black);
-  create_leds_snapshot();
 
-  fx_timebase = millis();
+  create_leds_snapshot();
+  clear_CRGBs(fx1);
   fx_starting = true;
+  fx_timebase = millis();
 }
 
 void update__Dennis() {
   s1 = segmntr1.get_base_numel();
-  // static uint8_t blend_amount = 0;
+  static uint8_t fx_blend;
 
-  if (0) {
-    // fill_solid(fx1, FastLEDConfig::N, CRGB::Black);
+  if (fx_starting) {
+    fx_starting = false;
+    fx_blend = 0;
+  }
 
-    EVERY_N_MILLIS(10) { fadeToBlackBy(fx1, FastLEDConfig::N, 19); }
+  idx = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
+  fx1[idx] = CRGB::Red;
+  fx1[s1 - idx - 1] = CRGB::OrangeRed;
+  populate_fx1_strip();
 
-    idx = beatsin16(15, 0, s1 - 1);
-    fx1[idx] = CRGB::Red;
-    fx1[s1 - idx - 1] = CRGB::OrangeRed;
-    segmntr1.process(leds, fx1);
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
 
-  } else {
-
-    /*
-    if (fx_starting) {
-      fx_starting = false;
-      blend_amount = 0;
-    } else {
-      if (blend_amount < 255) {
-        blend_amount++;
-      }
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
+    fadeToBlackBy(fx1, s1, 14);
+    if (fx_blend < 255) {
+      fx_blend++;
     }
-    */
-
-    EVERY_N_MILLIS(10) {
-      fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
-      fadeToBlackBy(fx1, s1, 14);
-    }
-
-    idx = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
-    fx1[idx] = CRGB::Red;
-    fx1[s1 - idx - 1] = CRGB::OrangeRed;
-    populate_fx1_strip();
-
-    blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, 127);
   }
 }
 
