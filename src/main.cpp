@@ -20,7 +20,7 @@ FASTLED_USING_NAMESPACE
 CRGB leds[FastLEDConfig::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
 
 // clang-format off
-extern FastLED_StripSegmenter segmntr;   // Defined in `DvG_FastLED_effects.h`
+extern FastLED_StripSegmenter segmntr1;  // Defined in `DvG_FastLED_effects.h`
 extern uint8_t fx_hue;                   // Defined in `DvG_FastLED_effects.h`
 extern uint8_t fx_hue_step;              // Defined in `DvG_FastLED_effects.h`
 // clang-format on
@@ -70,11 +70,11 @@ void update_IR_dist() {
 ------------------------------------------------------------------------------*/
 
 std::vector<State> states = {
-    state__TestPattern, state__HeartBeat, state__Dennis, state__Rainbow,
-    state__BPM,         state__Juggle,    state__Sinelon};
+    state__TestPattern, state__HeartBeat1, state__HeartBeat2, state__Dennis,
+    state__Rainbow,     state__BPM,        state__Juggle,     state__Sinelon};
 
 bool state_has_changed = true;
-uint16_t state_idx = 1;
+uint16_t state_idx = 2;
 
 FSM fsm = FSM(states[state_idx]);
 
@@ -108,12 +108,12 @@ void print_state() {
 
 void print_style() {
   static char buffer[STYLE_NAME_LEN] = {"\0"};
-  segmntr.get_style_name(buffer);
+  segmntr1.get_style_name(buffer);
 #ifdef USE_ANSI
   ansi.foreground(ANSI::white | ANSI::bright);
 #endif
   Ser.print("Style : ");
-  Ser.print((int)segmntr.get_style());
+  Ser.print((int)segmntr1.get_style());
   Ser.print(" - ");
   Ser.println(buffer);
 #ifdef USE_ANSI
@@ -178,11 +178,11 @@ void loop() {
       next_state();
 
     } else if (charCmd == '[') {
-      segmntr.prev_style();
+      segmntr1.prev_style();
       print_style();
 
     } else if (charCmd == ']') {
-      segmntr.next_style();
+      segmntr1.next_style();
       print_style();
     }
   }
@@ -214,7 +214,7 @@ void loop() {
   /*
   EVERY_N_SECONDS(24) { next_state(); }
   EVERY_N_SECONDS(10) {
-    segmntr.next_style();
+    segmntr1.next_style();
     print_style();
   }
   */
