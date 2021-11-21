@@ -22,8 +22,8 @@ CRGB leds[FastLEDConfig::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
 
 extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 
-// Master switch to turn leds on/off
-bool led_output_is_on = true;
+// Master switch to enable leds on/off
+static bool ENA_leds = true;
 
 #define Ser Serial
 
@@ -173,9 +173,9 @@ void loop() {
       print_style();
 
     } else if (charCmd == '`') {
-      led_output_is_on = !led_output_is_on;
+      ENA_leds = !ENA_leds;
       Ser.print("Output ");
-      Ser.println(led_output_is_on ? "ON" : "OFF");
+      Ser.println(ENA_leds ? "ON" : "OFF");
 
     } else if ((charCmd >= '0') & (charCmd <= '9')) {
       set_state(charCmd - '0');
@@ -204,8 +204,8 @@ void loop() {
     print_state();
   }
 
-  // Overrule any LED effect
-  if (!led_output_is_on) {
+  // Master switch to enable leds on/off
+  if (!ENA_leds) {
     fill_solid(leds, FastLEDConfig::N, CRGB::Black);
   }
 
@@ -215,7 +215,7 @@ void loop() {
   FastLED.delay(FastLEDConfig::DELAY);
 
   // DEBUG frame rate
-  if (led_output_is_on & 0) {
+  if (ENA_leds & 0) {
     Ser.println(millis() - tick);
     tick = millis();
   }
