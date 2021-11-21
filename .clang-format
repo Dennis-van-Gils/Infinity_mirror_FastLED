@@ -1,0 +1,16 @@
+﻿---
+BasedOnStyle: LLVM
+AccessModifierOffset: '-2'
+AllowShortBlocksOnASingleLine: 'true'
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+BreakBeforeBraces: Attach
+ColumnLimit: '80'
+IndentCaseLabels: 'true'
+IndentPPDirectives: AfterHash
+IndentWidth: '2'
+NamespaceIndentation: All
+TabWidth: '2'
+UseTab: Never
+
+...

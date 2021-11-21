@@ -68,14 +68,20 @@ void create_leds_snapshot() {
   memcpy8(leds_snapshot, leds, CRGB_SIZE * FastLEDConfig::N);
 }
 
-void populate_fx1_strip() { segmntr1.process(fx1_strip, fx1); }
-void populate_fx2_strip() { segmntr2.process(fx2_strip, fx2); }
+void populate_fx1_strip() {
+  segmntr1.process(fx1_strip, fx1);
+}
+void populate_fx2_strip() {
+  segmntr2.process(fx2_strip, fx2);
+}
 
 void rotate_strip_90(CRGB *in) {
   std::rotate(in, in + FastLEDConfig::L, in + FastLEDConfig::N);
 }
 
-void clear_CRGBs(CRGB *in) { fill_solid(in, FastLEDConfig::N, CRGB::Black); }
+void clear_CRGBs(CRGB *in) {
+  fill_solid(in, FastLEDConfig::N, CRGB::Black);
+}
 
 void add_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel) {
   for (uint16_t idx = 0; idx < numel; idx++) {

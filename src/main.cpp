@@ -90,7 +90,9 @@ void set_state(uint16_t idx) {
   state_has_changed = true;
 }
 
-void next_state() { set_state((state_idx + 1) % states.size()); }
+void next_state() {
+  set_state((state_idx + 1) % states.size());
+}
 
 void prev_state() {
   set_state((state_idx + states.size() - 1) % states.size());
