@@ -79,11 +79,12 @@ void update_IR_dist() {
 ------------------------------------------------------------------------------*/
 
 std::vector<State> states = {
-    state__TestPattern, state__HeartBeat1, state__HeartBeat2, state__Dennis,
-    state__Rainbow,     state__BPM,        state__Sinelon};
+    // state__TestPattern,
+    state__HeartBeat1, state__HeartBeat2, state__Dennis,
+    state__Rainbow,    state__BPM,        state__Sinelon};
 
 bool state_has_changed = true;
-uint16_t state_idx = 7;
+uint16_t state_idx = 1;
 
 FSM fsm = FSM(states[state_idx]);
 
@@ -224,8 +225,8 @@ void loop() {
   // Periodic updates
   EVERY_N_MILLISECONDS(100) { update_IR_dist(); }
   EVERY_N_MILLISECONDS(30) { fx_hue = fx_hue + fx_hue_step; }
+  EVERY_N_SECONDS(20) { next_state(); }
   /*
-  EVERY_N_SECONDS(24) { next_state(); }
   EVERY_N_SECONDS(10) {
     segmntr1.next_style();
     print_style();
