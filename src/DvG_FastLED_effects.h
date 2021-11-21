@@ -232,6 +232,7 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 void enter__Rainbow() {
   // segmntr1.set_style(StyleEnum::COPIED_SIDES);
   segmntr1.set_style(StyleEnum::FULL_STRIP);
+  create_leds_snapshot();
   fx_hue = 0;
   effect_is_at_startup = true;
 }
@@ -239,20 +240,32 @@ void enter__Rainbow() {
 void update__Rainbow() {
   s1 = segmntr1.get_base_numel();
   static uint8_t wave_idx;
+  static uint8_t fx_blend;
 
   if (effect_is_at_startup) {
     wave_idx = 0;
+    fx_blend = 0;
     effect_is_at_startup = false;
   }
 
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+  }
+
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
+  populate_fx1_strip();
 
   EVERY_N_MILLIS(50) {
     fx_hue_step = round(cubicwave8(wave_idx) / 255. * 9.) + 1;
     wave_idx++;
   }
+  EVERY_N_MILLIS(6) {
+    if (fx_blend < 255) {
+      fx_blend++;
+    }
+  }
 
-  segmntr1.process(leds, fx1);
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
 }
 
 State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
