@@ -9,6 +9,7 @@ Dennis van Gils
 
 #include "FastLED.h"
 #include "FiniteStateMachine.h"
+#include "RunningAverage.h"
 
 #include "DvG_FastLED_StripSegmenter.h"
 #include "DvG_FastLED_config.h"
@@ -53,13 +54,21 @@ const float   IR_CALIB_C = 0.424;
 // clang-format on
 
 void update_IR_dist() {
-  uint16_t A0 = analogRead(PIN_A0);
-  IR_dist = IR_CALIB_A / pow(A0, IR_CALIB_C) - IR_CALIB_B;
-  IR_dist = max(IR_dist, IR_MIN_DIST);
-  IR_dist = min(IR_dist, IR_MAX_DIST);
+  // Reads out the IR distance sensor in [cm] and computes the running average
+  static RunningAverage IR_dist_RA(10);
+  uint8_t val;
+
+  val = IR_CALIB_A / pow(analogRead(PIN_A0), IR_CALIB_C) - IR_CALIB_B; // [cm]
+  val = max(val, IR_MIN_DIST);
+  val = min(val, IR_MAX_DIST);
+
+  IR_dist_RA.addValue(val);
+  IR_dist = IR_dist_RA.getAverage();
 
   if (0) {
     Ser.print(A0);
+    Ser.print("\t");
+    Ser.print(val);
     Ser.print("\t");
     Ser.println(IR_dist);
   }
@@ -71,10 +80,10 @@ void update_IR_dist() {
 
 std::vector<State> states = {
     state__TestPattern, state__HeartBeat1, state__HeartBeat2, state__Dennis,
-    state__Rainbow,     state__BPM,        state__Juggle,     state__Sinelon};
+    state__Rainbow,     state__BPM,        state__Sinelon};
 
 bool state_has_changed = true;
-uint16_t state_idx = 2;
+uint16_t state_idx = 7;
 
 FSM fsm = FSM(states[state_idx]);
 
