@@ -6,6 +6,14 @@ LS5RGB60 APA102 CP
 'Dotstar' type
 LEDTUNING.NL
 
+Testing 52 leds:
+  5 V, 2.5 A switching power supply:
+    max current @ full white = 1.3 A
+
+  5 V, 2.0 A switching power supply:
+    max current @ full white = 1.13 A
+    --> underpowered PSU
+
 --> strip direction -->
 
               pin
