@@ -25,6 +25,16 @@ extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 // Master switch to enable leds on/off
 static bool ENA_leds = true;
 
+// Master switch to go max white
+static bool ENA_max_white = false;
+
+// Brightness
+// uint8_t brightness = FastLEDConfig::BRIGHTNESS;
+uint8_t brightness_idx = 5;
+const uint8_t brightness_table[] = {0,   1,   16,  32,  48,  64,
+                                    80,  96,  112, 128, 144, 160,
+                                    176, 192, 208, 224, 240, 255};
+
 #define Ser Serial
 
 #define USE_ANSI
@@ -148,7 +158,8 @@ void setup() {
                DATA_RATE_MHZ(1)>(leds, FastLEDConfig::N)
       .setCorrection(FastLEDConfig::COLOR_CORRECTION);
 
-  FastLED.setBrightness(FastLEDConfig::BRIGHTNESS);
+  // FastLED.setBrightness(FastLEDConfig::BRIGHTNESS);
+  FastLED.setBrightness(brightness_table[brightness_idx]);
 
   fill_solid(leds, FastLEDConfig::N, CRGB::Black);
 
@@ -177,7 +188,7 @@ void loop() {
       Ser.print("Output ");
       Ser.println(ENA_leds ? "ON" : "OFF");
 
-    } else if ((charCmd >= '0') & (charCmd <= '9')) {
+    } else if ((charCmd >= '0') && (charCmd <= '9')) {
       set_state(charCmd - '0');
 
     } else if (charCmd == 'o') {
@@ -193,6 +204,27 @@ void loop() {
     } else if (charCmd == ']') {
       segmntr1.next_style();
       print_style();
+
+    } else if (charCmd == '-') {
+      brightness_idx = brightness_idx > 0 ? brightness_idx - 1 : 0;
+      FastLED.setBrightness(brightness_table[brightness_idx]);
+      Ser.print("Brightness ");
+      Ser.println(brightness_table[brightness_idx]);
+
+    } else if ((charCmd == '+') || (charCmd == '=')) {
+      brightness_idx = brightness_idx < sizeof(brightness_table) - 1
+                           ? brightness_idx + 1
+                           : sizeof(brightness_table) - 1;
+      FastLED.setBrightness(brightness_table[brightness_idx]);
+      Ser.print("Brightness ");
+      Ser.println(brightness_table[brightness_idx]);
+
+    } else if (charCmd == 'w') {
+      ENA_max_white = !ENA_max_white;
+      FastLED.setBrightness(ENA_max_white ? 255
+                                          : brightness_table[brightness_idx]);
+      Ser.print("Max white ");
+      Ser.println(ENA_max_white ? "ON" : "OFF");
     }
   }
 
@@ -207,6 +239,10 @@ void loop() {
   // Master switch to enable leds on/off
   if (!ENA_leds) {
     fill_solid(leds, FastLEDConfig::N, CRGB::Black);
+  } else {
+    if (ENA_max_white) {
+      fill_solid(leds, FastLEDConfig::N, CRGB::White);
+    }
   }
 
   // Send out LED data to the strip. `delay()` keeps the framerate modest and
