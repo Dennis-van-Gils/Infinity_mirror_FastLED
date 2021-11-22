@@ -212,7 +212,7 @@ void loop() {
       Ser.println(brightness_table[brightness_idx]);
 
     } else if ((charCmd == '+') || (charCmd == '=')) {
-      brightness_idx = brightness_idx < sizeof(brightness_table) - 1
+      brightness_idx = brightness_idx < sizeof(brightness_table) - 2
                            ? brightness_idx + 1
                            : sizeof(brightness_table) - 1;
       FastLED.setBrightness(brightness_table[brightness_idx]);
