@@ -226,6 +226,21 @@ void loop() {
       ENA_full_white = !ENA_full_white;
       Ser.print("Full white ");
       Ser.println(ENA_full_white ? "ON" : "OFF");
+
+    } else {
+      Ser.println("\nInfinity Mirror");
+      Ser.println("---------------");
+      Ser.println("`  : Toggle output ON/OFF");
+      Ser.println("q  : Toggle auto next state ON/OFF");
+      Ser.println("w  : Toggle full white ON/OFF\n");
+      Ser.println("-  : Decrease brightness");
+      Ser.println("+  : Increase brightness\n");
+      Ser.println("?  : Print current state & style");
+      Ser.println("0-9: Go to state preset #");
+      Ser.println("o  : Go to previous state");
+      Ser.println("p  : Go to next state");
+      Ser.println("[  : Go to previous style");
+      Ser.println("]  : Go to next style\n");
     }
   }
 
