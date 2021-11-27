@@ -63,6 +63,34 @@ extern const uint8_t IR_MIN_DIST; // Defined in `main.cpp`
 extern const uint8_t IR_MAX_DIST; // Defined in `main.cpp`
 
 /*------------------------------------------------------------------------------
+------------------------------------------------------------------------------*/
+// https://coolors.co/98ce00-16e0bd-78c3fb-89a6fb-98838f
+
+// clang-format off
+CRGBPalette16 custom_palette_1 = {
+  0x7400B8,
+  0x7400B8,
+  0x6930C3,
+  0x6930C3,
+
+  0x5E60CE,
+  0x5390D9,
+  0x5390D9,
+  0x4EA8DE,
+
+  0x48BFE3,
+  0x48BFE3,
+  0x56CFE1,
+  0x64DFDF,
+
+  0x64DFDF,
+  0x72EFDD,
+  0x80FFDB,
+  0x80FFDB,
+};
+// clang-format on
+
+/*------------------------------------------------------------------------------
   CRGB array functions
 ------------------------------------------------------------------------------*/
 
@@ -75,6 +103,18 @@ void populate_fx1_strip() {
 }
 void populate_fx2_strip() {
   segmntr2.process(fx2_strip, fx2);
+}
+
+void copy_strip(const CRGB *in, CRGB *out) {
+  memcpy8(out, in, CRGB_SIZE * FastLEDConfig::N);
+}
+
+void flip_strip(CRGB *in) {
+  for (uint16_t idx = 0; idx < FastLEDConfig::N / 2; idx++) {
+    CRGB t = in[idx];
+    in[idx] = in[FastLEDConfig::N - idx - 1];
+    in[FastLEDConfig::N - idx - 1] = t;
+  }
 }
 
 void rotate_strip_90(CRGB *in) {
@@ -448,6 +488,59 @@ void update__Dennis() {
 }
 
 State state__Dennis("Dennis", enter__Dennis, update__Dennis);
+
+/*------------------------------------------------------------------------------
+  Try2
+------------------------------------------------------------------------------*/
+
+void enter__Try2() {
+  // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
+  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+  create_leds_snapshot();
+  clear_CRGBs(fx1);
+  clear_CRGBs(fx2);
+  fx_timebase = millis();
+  fx_blend = 0;
+  fx_hue = 0;
+}
+
+void update__Try2() {
+  s1 = segmntr1.get_base_numel();
+
+  idx1 = beatsin16(15, 0, s1 - 1, fx_timebase); // 15
+  // fx1[idx1] = CRGB::Red;
+  fx1[idx1] = ColorFromPalette(custom_palette_1, fx_hue);
+  // fx1[s1 - idx1 - 1] = CRGB::OrangeRed;
+  populate_fx1_strip();
+
+  copy_strip(fx1_strip, fx2_strip);
+  flip_strip(fx2_strip);
+  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
+
+  /*
+  // Boost blue
+  for (uint16_t i = 0; i < FastLEDConfig::N; i++) {
+    fx1_strip[i].blue = scale8(fx1_strip[i].blue, 255);
+    //fx1_strip[i].green = scale8(fx1_strip[i].green, 200);
+    //fx1_strip[i] |= CRGB(2, 5, 7);
+  }
+  */
+
+  // blur1d(fx1_strip, FastLEDConfig::N, 128);
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
+    fadeToBlackBy(fx1, s1, 4);
+    if (fx_blend < 255) {
+      fx_blend++;
+    }
+    fx_hue += 1;
+  }
+}
+
+State state__Try2("Try2", enter__Try2, update__Try2);
 
 /*------------------------------------------------------------------------------
   TestPattern

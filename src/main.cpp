@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-21-11-2021
+27-11-2021
 */
 
 #include <Arduino.h>
@@ -23,9 +23,9 @@ CRGB leds[FastLEDConfig::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
 extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 
 // Master switches
-static bool ENA_leds = true;            // Enable leds?
-static bool ENA_full_white = false;     // Override with full white?
-static bool ENA_auto_next_state = true; // Automatically go to next state?
+static bool ENA_leds = true;             // Enable leds?
+static bool ENA_full_white = false;      // Override with full white?
+static bool ENA_auto_next_state = false; // Automatically go to next state?
 
 // Brightness
 uint8_t brightness_idx = 5;
@@ -84,13 +84,14 @@ void update_IR_dist() {
 
 std::vector<State> states = {
     // state__TestPattern,
-    state__HeartBeat1, state__Rainbow, state__BPM,    state__Dennis,
-    state__HeartBeat2, state__Rainbow, state__Sinelon};
+    state__HeartBeat1, state__Rainbow, state__BPM,     state__Dennis,
+    state__HeartBeat2, state__Rainbow, state__Sinelon};//, state__Try2};
 
 bool state_has_changed = true;
 uint16_t state_idx = 0;
 
 FSM fsm = FSM(states[state_idx]);
+//FSM fsm = FSM(state__Try2);
 
 void set_state(uint16_t idx) {
   state_idx = min(idx, states.size() - 1);
