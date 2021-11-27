@@ -25,7 +25,6 @@ namespace FastLEDConfig {
   const EOrder COLOR_ORDER = BGR;
   const LEDColorCorrection COLOR_CORRECTION = TypicalSMD5050;
 
-  const uint8_t BRIGHTNESS = 64;
   const uint16_t DELAY = round(1000 / 250); // 1000 / FPS, FPS = 250
 } // namespace FastLEDConfig
 

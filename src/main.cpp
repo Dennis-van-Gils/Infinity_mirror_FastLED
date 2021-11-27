@@ -22,14 +22,12 @@ CRGB leds[FastLEDConfig::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
 
 extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 
-// Master switch to enable leds on/off
-static bool ENA_leds = true;
-
-// Master switch to go max white
-static bool ENA_max_white = false;
+// Master switches
+static bool ENA_leds = true;            // Enable leds?
+static bool ENA_full_white = false;     // Override with full white?
+static bool ENA_auto_next_state = true; // Automatically go to next state?
 
 // Brightness
-// uint8_t brightness = FastLEDConfig::BRIGHTNESS;
 uint8_t brightness_idx = 5;
 const uint8_t brightness_table[] = {0,   1,   16,  32,  48,  64,
                                     80,  96,  112, 128, 144, 160,
@@ -188,6 +186,11 @@ void loop() {
       Ser.print("Output ");
       Ser.println(ENA_leds ? "ON" : "OFF");
 
+    } else if (charCmd == 'q') {
+      ENA_auto_next_state = !ENA_auto_next_state;
+      Ser.print("Auto next state ");
+      Ser.println(ENA_auto_next_state ? "ON" : "OFF");
+
     } else if ((charCmd >= '0') && (charCmd <= '9')) {
       set_state(charCmd - '0');
 
@@ -220,11 +223,9 @@ void loop() {
       Ser.println(brightness_table[brightness_idx]);
 
     } else if (charCmd == 'w') {
-      ENA_max_white = !ENA_max_white;
-      FastLED.setBrightness(ENA_max_white ? 255
-                                          : brightness_table[brightness_idx]);
-      Ser.print("Max white ");
-      Ser.println(ENA_max_white ? "ON" : "OFF");
+      ENA_full_white = !ENA_full_white;
+      Ser.print("Full white ");
+      Ser.println(ENA_full_white ? "ON" : "OFF");
     }
   }
 
@@ -236,11 +237,11 @@ void loop() {
     print_state();
   }
 
-  // Master switch to enable leds on/off
+  // Master switches
   if (!ENA_leds) {
     fill_solid(leds, FastLEDConfig::N, CRGB::Black);
   } else {
-    if (ENA_max_white) {
+    if (ENA_full_white) {
       fill_solid(leds, FastLEDConfig::N, CRGB::White);
     }
   }
@@ -260,8 +261,10 @@ void loop() {
   EVERY_N_MILLISECONDS(100) {
     update_IR_dist();
   }
-  EVERY_N_SECONDS(20) {
-    next_state();
+  if (ENA_auto_next_state) {
+    EVERY_N_SECONDS(20) {
+      next_state();
+    }
   }
   /*
   EVERY_N_SECONDS(10) {
