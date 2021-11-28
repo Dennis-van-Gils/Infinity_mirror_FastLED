@@ -20,6 +20,7 @@ Dennis van Gils
 
 #include <Arduino.h>
 #include <algorithm>
+#include <cmath>
 
 #include "FastLED.h"
 #include "FiniteStateMachine.h"
@@ -55,6 +56,7 @@ static uint8_t  fx_hue      = 0;
 static uint8_t  fx_hue_step = 1;
 static uint8_t  fx_intens   = 255;
 static uint8_t  fx_blend    = 127;
+static uint8_t  fx_blur     = 0;
 // clang-format on
 
 // IR distance sensor
@@ -121,6 +123,10 @@ void rotate_strip_90(CRGB *in) {
   std::rotate(in, in + FastLEDConfig::L, in + FastLEDConfig::N);
 }
 
+void rotate_strip(CRGB *in, uint16_t amount) {
+  std::rotate(in, in + amount, in + FastLEDConfig::N);
+}
+
 void clear_CRGBs(CRGB *in) {
   fill_solid(in, FastLEDConfig::N, CRGB::Black);
 }
@@ -151,6 +157,7 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   HeartBeat
 
   A beating heart. You must call `generate_HeartBeat()` once in `setup()`.
+  Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 #define ECG_N_SMP 255 // == max uint8_t, so you can use `beat8()` for timing
 
@@ -198,6 +205,7 @@ void update__HeartBeat1() {
 
 /*------------------------------------------------------------------------------
   HeartBeat2
+  Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void enter__HeartBeat2() {
@@ -541,6 +549,99 @@ void update__Try2() {
 }
 
 State state__Try2("Try2", enter__Try2, update__Try2);
+
+/*------------------------------------------------------------------------------
+  RainbowBarf
+  Author: Dennis van Gils
+------------------------------------------------------------------------------*/
+
+void enter__RainbowBarf() {
+  // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
+  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  segmntr1.set_style(StyleEnum::FULL_STRIP);
+  create_leds_snapshot();
+  clear_CRGBs(fx1);
+  clear_CRGBs(fx1_strip);
+  clear_CRGBs(fx2);
+  clear_CRGBs(fx2_strip);
+  fx_timebase = millis();
+  fx_blend = 0;
+  fx_hue = 0;
+  idx1 = 6;
+}
+
+uint8_t normaldist8(uint8_t x, float mu, float sigma) {
+  // TODO: Exploit symmetry. Only have to calculate half. Perhaps return array
+  // instead of single point --> more efficient
+  float val = exp(-pow((((float)x - mu) / sigma), 2.f) / 2.f);
+  return val * 255;
+}
+
+uint8_t normaldist8strip(uint8_t x, float mu, float sigma) {
+  // TODO: Exploit symmetry. Only have to calculate half. Perhaps return array
+  // instead of single point --> more efficient
+  float val = exp(-pow((((float)x - mu) / sigma), 2.f) / 2.f);
+  return val * 255;
+}
+
+void update__RainbowBarf() {
+  s1 = segmntr1.get_base_numel();
+  static uint8_t mu = 6;
+  static uint16_t wave_idx = 0;
+
+  // float sigma = 2;
+  float sigma = ((float)triwave8(wave_idx) / 255) * 24 + .01;
+  //float sigma = ((float)quadwave8(wave_idx) / 255) * 24 + .01;
+
+  // Calculate gaussian around center of strip
+  for (idx1 = 0; idx1 < FastLEDConfig::N; idx1++) {
+    uint8_t gaus_val;
+    gaus_val = normaldist8(idx1, FastLEDConfig::N / 2, sigma);
+    // fx1_strip[idx1] = CRGB(gaus_val, 0, 0);
+    fx1_strip[idx1] = ColorFromPalette(RainbowColors_p, gaus_val, gaus_val);
+  }
+
+  // Translate fx1_strip to the correct mu
+  rotate_strip(fx1_strip,
+               ((int16_t)FastLEDConfig::N / 2 - mu + FastLEDConfig::N) %
+                   FastLEDConfig::N);
+
+  copy_strip(fx1_strip, leds);
+
+  EVERY_N_MILLIS(20) {
+    fx_hue += 1;
+  }
+  EVERY_N_MILLIS(20) {
+    wave_idx += 1;
+    if (wave_idx >= 255) {
+      wave_idx -= 255;
+
+      mu += 26;
+      while (mu >= FastLEDConfig::N) {
+        mu -= FastLEDConfig::N;
+      }
+    }
+  }
+  /*
+  EVERY_N_MILLIS(100) {
+    mu += 1;
+    while (mu >= FastLEDConfig::N) {
+      mu -= FastLEDConfig::N;
+    }
+  }
+  */
+  /*
+   EVERY_N_MILLIS(20) {
+     mu += 0.01;
+     while (mu >= FastLEDConfig::N) {
+       mu -= FastLEDConfig::N;
+     }
+   }
+   */
+}
+
+State state__RainbowBarf("RainbowBarf", enter__RainbowBarf,
+                         update__RainbowBarf);
 
 /*------------------------------------------------------------------------------
   TestPattern
