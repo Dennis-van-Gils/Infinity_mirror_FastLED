@@ -570,41 +570,49 @@ void enter__RainbowBarf() {
   idx1 = 6;
 }
 
-uint8_t normaldist8(uint8_t x, float mu, float sigma) {
-  // TODO: Exploit symmetry. Only have to calculate half. Perhaps return array
-  // instead of single point --> more efficient
-  float val = exp(-pow((((float)x - mu) / sigma), 2.f) / 2.f);
-  return val * 255;
-}
+void gauss8strip(uint8_t gauss8[FastLEDConfig::N], float mu, float sigma) {
+  // Sub-pixel accuracy in mu and sigma (eventually, not yet)
+  // TODO: Don't operate on `N` but on `s` instead
+  // uint8_t gauss8[FastLEDConfig::N];
 
-uint8_t normaldist8strip(uint8_t x, float mu, float sigma) {
-  // TODO: Exploit symmetry. Only have to calculate half. Perhaps return array
-  // instead of single point --> more efficient
-  float val = exp(-pow((((float)x - mu) / sigma), 2.f) / 2.f);
-  return val * 255;
+  // Calculate the left-side (zero included) gaussian centered at the middle of
+  // the strip
+  for (uint16_t idx = 0; idx <= FastLEDConfig::N / 2; idx++) {
+    gauss8[idx] =
+        exp(-pow(((idx - FastLEDConfig::N / 2) / sigma), 2.f) / 2.f) * 255;
+  }
+
+  // Exploit mirror symmetry
+  for (uint16_t idx = 0; idx < FastLEDConfig::N / 2 - 1; idx++) {
+    gauss8[FastLEDConfig::N / 2 + idx + 1] =
+        gauss8[FastLEDConfig::N / 2 - idx - 1];
+  }
+
+  // Rotate gaussian array to the correct mu
+  std::rotate(gauss8,
+              gauss8 + (((int16_t)FastLEDConfig::N / 2 - (uint8_t)mu +
+                         FastLEDConfig::N)) %
+                           FastLEDConfig::N,
+              gauss8 + FastLEDConfig::N);
 }
 
 void update__RainbowBarf() {
   s1 = segmntr1.get_base_numel();
+  uint8_t gauss8[FastLEDConfig::N];
   static uint8_t mu = 6;
   static uint16_t wave_idx = 0;
 
   // float sigma = 2;
   float sigma = ((float)triwave8(wave_idx) / 255) * 24 + .01;
-  //float sigma = ((float)quadwave8(wave_idx) / 255) * 24 + .01;
+  // float sigma = ((float)quadwave8(wave_idx) / 255) * 24 + .01;
 
-  // Calculate gaussian around center of strip
+  gauss8strip(gauss8, mu, sigma);
+
   for (idx1 = 0; idx1 < FastLEDConfig::N; idx1++) {
-    uint8_t gaus_val;
-    gaus_val = normaldist8(idx1, FastLEDConfig::N / 2, sigma);
-    // fx1_strip[idx1] = CRGB(gaus_val, 0, 0);
-    fx1_strip[idx1] = ColorFromPalette(RainbowColors_p, gaus_val, gaus_val);
+    // fx1_strip[idx1] = CRGB(gauss8[idx1], 0, 0);
+    fx1_strip[idx1] =
+        ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
   }
-
-  // Translate fx1_strip to the correct mu
-  rotate_strip(fx1_strip,
-               ((int16_t)FastLEDConfig::N / 2 - mu + FastLEDConfig::N) %
-                   FastLEDConfig::N);
 
   copy_strip(fx1_strip, leds);
 
