@@ -688,6 +688,60 @@ State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
                           update__RainbowBarf2);
 
 /*------------------------------------------------------------------------------
+  RainbowBarf3
+
+  Demonstrates gaussian with sub-pixel `mu`
+  Author: Dennis van Gils
+------------------------------------------------------------------------------*/
+
+void enter__RainbowBarf3() {
+  // segmntr1.set_style(StyleEnum::FULL_STRIP);
+  segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  clear_CRGBs(fx1);
+  clear_CRGBs(fx1_strip);
+  fx_timebase = millis();
+  fx_hue = 0;
+}
+
+void update__RainbowBarf3() {
+  s1 = segmntr1.get_base_numel();
+  CHSV fx3[FastLEDConfig::N];
+  uint8_t gauss8[FastLEDConfig::N];
+  static uint16_t wave_idx = 0;
+  static float mu = 6.;
+  float sigma = 12;
+
+  calculate_gauss8strip(gauss8, mu, sigma);
+
+  fill_rainbow(fx3, s1, fx_hue, 255 / (s1 - 1));
+
+  // clear_CRGBs(fx1);
+  for (idx1 = 0; idx1 < s1; idx1++) {
+    fx1[idx1] = CHSV(fx3[idx1].hue + gauss8[idx1], 255, gauss8[idx1]);
+  }
+  populate_fx1_strip();
+  copy_strip(fx1_strip, leds);
+
+  EVERY_N_MILLIS(20) {
+    wave_idx += 1;
+    if (wave_idx >= 255) {
+      wave_idx -= 255;
+    }
+
+    mu += .4;
+    while (mu >= FastLEDConfig::N) {
+      mu -= FastLEDConfig::N;
+    }
+  }
+  EVERY_N_MILLIS(50) {
+    fx_hue += 1;
+  }
+}
+
+State state__RainbowBarf3("RainbowBarf3", enter__RainbowBarf3,
+                          update__RainbowBarf3);
+
+/*------------------------------------------------------------------------------
   TestPattern
 
   First LED : Green
