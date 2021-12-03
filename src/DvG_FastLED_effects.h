@@ -56,7 +56,7 @@ static uint8_t  fx_hue      = 0;
 static uint8_t  fx_hue_step = 1;
 static uint8_t  fx_intens   = 255;
 static uint8_t  fx_blend    = 127;
-static uint8_t  fx_blur     = 0;
+// static uint8_t  fx_blur     = 0;
 // clang-format on
 
 // IR distance sensor
@@ -151,6 +151,51 @@ bool is_all_black(CRGB *in, uint32_t numel) {
     }
   }
   return true;
+}
+
+void calculate_gauss8strip(uint8_t gauss8[FastLEDConfig::N], float mu,
+                           float sigma) {
+  // Slow, but with sub-pixel accuracy on `mu`.
+
+  uint16_t mu_round = round(mu);
+  float mu_remainder = mu - mu_round;
+
+  // Calculate the left-side (zero included) gaussian centered at the middle of
+  // the strip
+  for (int16_t idx = 0; idx < FastLEDConfig::N; idx++) {
+    gauss8[idx] =
+        exp(-pow(((idx - FastLEDConfig::N / 2 - mu_remainder) / sigma), 2.f) /
+            2.f) *
+        255;
+  }
+
+  // Rotate gaussian array to the correct mu
+  std::rotate(gauss8,
+              gauss8 + (FastLEDConfig::N * 3 / 2 - mu_round) % FastLEDConfig::N,
+              gauss8 + FastLEDConfig::N);
+}
+
+void calculate_gauss8strip(uint8_t gauss8[FastLEDConfig::N], uint16_t mu,
+                           float sigma) {
+  // Fast, because `mu` is integer
+
+  // Calculate the left-side (zero included) gaussian centered at the middle of
+  // the strip
+  for (uint16_t idx = 0; idx <= FastLEDConfig::N / 2; idx++) {
+    gauss8[idx] =
+        exp(-pow(((idx - FastLEDConfig::N / 2) / sigma), 2.f) / 2.f) * 255;
+  }
+
+  // Exploit mirror symmetry
+  for (uint16_t idx = 0; idx < FastLEDConfig::N / 2 - 1; idx++) {
+    gauss8[FastLEDConfig::N / 2 + idx + 1] =
+        gauss8[FastLEDConfig::N / 2 - idx - 1];
+  }
+
+  // Rotate gaussian array to the correct mu
+  std::rotate(gauss8,
+              gauss8 + (FastLEDConfig::N * 3 / 2 - mu) % FastLEDConfig::N,
+              gauss8 + FastLEDConfig::N);
 }
 
 /*------------------------------------------------------------------------------
@@ -552,104 +597,95 @@ State state__Try2("Try2", enter__Try2, update__Try2);
 
 /*------------------------------------------------------------------------------
   RainbowBarf
+
+  Demonstrates gaussian with sub-pixel `mu`
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void enter__RainbowBarf() {
-  // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
-  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-  segmntr1.set_style(StyleEnum::FULL_STRIP);
-  create_leds_snapshot();
+  segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
   clear_CRGBs(fx1);
   clear_CRGBs(fx1_strip);
-  clear_CRGBs(fx2);
-  clear_CRGBs(fx2_strip);
   fx_timebase = millis();
-  fx_blend = 0;
-  fx_hue = 0;
-  idx1 = 6;
-}
-
-void gauss8strip(uint8_t gauss8[FastLEDConfig::N], float mu, float sigma) {
-  // Sub-pixel accuracy in mu and sigma (eventually, not yet)
-  // TODO: Don't operate on `N` but on `s` instead
-  // uint8_t gauss8[FastLEDConfig::N];
-
-  // Calculate the left-side (zero included) gaussian centered at the middle of
-  // the strip
-  for (uint16_t idx = 0; idx <= FastLEDConfig::N / 2; idx++) {
-    gauss8[idx] =
-        exp(-pow(((idx - FastLEDConfig::N / 2) / sigma), 2.f) / 2.f) * 255;
-  }
-
-  // Exploit mirror symmetry
-  for (uint16_t idx = 0; idx < FastLEDConfig::N / 2 - 1; idx++) {
-    gauss8[FastLEDConfig::N / 2 + idx + 1] =
-        gauss8[FastLEDConfig::N / 2 - idx - 1];
-  }
-
-  // Rotate gaussian array to the correct mu
-  std::rotate(gauss8,
-              gauss8 + (((int16_t)FastLEDConfig::N / 2 - (uint8_t)mu +
-                         FastLEDConfig::N)) %
-                           FastLEDConfig::N,
-              gauss8 + FastLEDConfig::N);
 }
 
 void update__RainbowBarf() {
   s1 = segmntr1.get_base_numel();
   uint8_t gauss8[FastLEDConfig::N];
-  static uint8_t mu = 6;
   static uint16_t wave_idx = 0;
+  static float mu = 6.;
+  float sigma = 6;
 
-  // float sigma = 2;
-  float sigma = ((float)triwave8(wave_idx) / 255) * 24 + .01;
-  // float sigma = ((float)quadwave8(wave_idx) / 255) * 24 + .01;
+  calculate_gauss8strip(gauss8, mu, sigma);
 
-  gauss8strip(gauss8, mu, sigma);
-
-  for (idx1 = 0; idx1 < FastLEDConfig::N; idx1++) {
+  for (idx1 = 0; idx1 < s1; idx1++) {
     // fx1_strip[idx1] = CRGB(gauss8[idx1], 0, 0);
-    fx1_strip[idx1] =
-        ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
+    fx1[idx1] = ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
   }
-
+  populate_fx1_strip();
   copy_strip(fx1_strip, leds);
 
-  EVERY_N_MILLIS(20) {
-    fx_hue += 1;
-  }
   EVERY_N_MILLIS(20) {
     wave_idx += 1;
     if (wave_idx >= 255) {
       wave_idx -= 255;
+    }
 
-      mu += 26;
+    mu += .4;
+    while (mu >= FastLEDConfig::N) {
+      mu -= FastLEDConfig::N;
+    }
+  }
+}
+
+State state__RainbowBarf("RainbowBarf", enter__RainbowBarf,
+                         update__RainbowBarf);
+
+/*------------------------------------------------------------------------------
+  RainbowBarf2
+
+  Demonstrates gaussian with integer-pixel `mu`
+  Author: Dennis van Gils
+------------------------------------------------------------------------------*/
+
+void enter__RainbowBarf2() {
+  segmntr1.set_style(StyleEnum::FULL_STRIP);
+  clear_CRGBs(fx1);
+  clear_CRGBs(fx1_strip);
+  fx_timebase = millis();
+}
+
+void update__RainbowBarf2() {
+  s1 = segmntr1.get_base_numel();
+  uint8_t gauss8[FastLEDConfig::N];
+  static uint16_t wave_idx = 0;
+  static uint16_t mu = 6;
+
+  float sigma = ((float)triwave8(wave_idx) / 255) * 24 + .01;
+
+  calculate_gauss8strip(gauss8, mu, sigma);
+
+  for (idx1 = 0; idx1 < s1; idx1++) {
+    // fx1_strip[idx1] = CRGB(gauss8[idx1], 0, 0);
+    fx1[idx1] = ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
+  }
+  populate_fx1_strip();
+  copy_strip(fx1_strip, leds);
+
+  EVERY_N_MILLIS(20) {
+    wave_idx += 1;
+    if (wave_idx >= 255) {
+      wave_idx -= 255;
+      mu += FastLEDConfig::N / 2;
       while (mu >= FastLEDConfig::N) {
         mu -= FastLEDConfig::N;
       }
     }
   }
-  /*
-  EVERY_N_MILLIS(100) {
-    mu += 1;
-    while (mu >= FastLEDConfig::N) {
-      mu -= FastLEDConfig::N;
-    }
-  }
-  */
-  /*
-   EVERY_N_MILLIS(20) {
-     mu += 0.01;
-     while (mu >= FastLEDConfig::N) {
-       mu -= FastLEDConfig::N;
-     }
-   }
-   */
 }
 
-State state__RainbowBarf("RainbowBarf", enter__RainbowBarf,
-                         update__RainbowBarf);
+State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
+                          update__RainbowBarf2);
 
 /*------------------------------------------------------------------------------
   TestPattern
