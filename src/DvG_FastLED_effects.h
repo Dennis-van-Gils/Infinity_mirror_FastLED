@@ -13,7 +13,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-21-11-2021
+04-12-2021
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -31,14 +31,14 @@ Dennis van Gils
 using namespace std;
 
 // External variables
-extern CRGB leds[FastLEDConfig::N]; // Defined in `main.cpp`
-extern FSM fsm;                     // Defined in `main.cpp`
+extern CRGB leds[FLC::N]; // Defined in `main.cpp`
+extern FSM fsm;           // Defined in `main.cpp`
 
-CRGB leds_snapshot[FastLEDConfig::N]; // Snapshot in time
-CRGB fx1[FastLEDConfig::N];           // Will be populated up to length `s1`
-CRGB fx2[FastLEDConfig::N];           // Will be populated up to length `s2`
-CRGB fx1_strip[FastLEDConfig::N];     // Full strip after segmenter on `fx1`
-CRGB fx2_strip[FastLEDConfig::N];     // Full strip after segmenter on `fx2`
+CRGB leds_snapshot[FLC::N]; // Snapshot in time
+CRGB fx1[FLC::N];           // Will be populated up to length `s1`
+CRGB fx2[FLC::N];           // Will be populated up to length `s2`
+CRGB fx1_strip[FLC::N];     // Full strip after segmenter on `fx1`
+CRGB fx2_strip[FLC::N];     // Full strip after segmenter on `fx2`
 
 FastLED_StripSegmenter segmntr1; // Segmenter operating on `fx1`
 static uint16_t s1; // Will hold `s1 = segmntr1.get_base_numel()` for `fx1`
@@ -97,7 +97,7 @@ CRGBPalette16 custom_palette_1 = {
 ------------------------------------------------------------------------------*/
 
 void create_leds_snapshot() {
-  memcpy8(leds_snapshot, leds, CRGB_SIZE * FastLEDConfig::N);
+  memcpy8(leds_snapshot, leds, CRGB_SIZE * FLC::N);
 }
 
 void populate_fx1_strip() {
@@ -108,27 +108,27 @@ void populate_fx2_strip() {
 }
 
 void copy_strip(const CRGB *in, CRGB *out) {
-  memcpy8(out, in, CRGB_SIZE * FastLEDConfig::N);
+  memcpy8(out, in, CRGB_SIZE * FLC::N);
 }
 
 void flip_strip(CRGB *in) {
-  for (uint16_t idx = 0; idx < FastLEDConfig::N / 2; idx++) {
+  for (uint16_t idx = 0; idx < FLC::N / 2; idx++) {
     CRGB t = in[idx];
-    in[idx] = in[FastLEDConfig::N - idx - 1];
-    in[FastLEDConfig::N - idx - 1] = t;
+    in[idx] = in[FLC::N - idx - 1];
+    in[FLC::N - idx - 1] = t;
   }
 }
 
 void rotate_strip_90(CRGB *in) {
-  std::rotate(in, in + FastLEDConfig::L, in + FastLEDConfig::N);
+  std::rotate(in, in + FLC::L, in + FLC::N);
 }
 
 void rotate_strip(CRGB *in, uint16_t amount) {
-  std::rotate(in, in + amount, in + FastLEDConfig::N);
+  std::rotate(in, in + amount, in + FLC::N);
 }
 
 void clear_CRGBs(CRGB *in) {
-  fill_solid(in, FastLEDConfig::N, CRGB::Black);
+  fill_solid(in, FLC::N, CRGB::Black);
 }
 
 void add_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel) {
@@ -153,8 +153,7 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   return true;
 }
 
-void profile_gauss8strip(uint8_t gauss8[FastLEDConfig::N], uint16_t mu,
-                         float sigma) {
+void profile_gauss8strip(uint8_t gauss8[FLC::N], uint16_t mu, float sigma) {
   // Calculates a Gaussian profile over the full strip with output range [0 255]
   // Fast, because `mu` is integer
 
@@ -162,44 +161,36 @@ void profile_gauss8strip(uint8_t gauss8[FastLEDConfig::N], uint16_t mu,
 
   // Calculate the left-side (zero included) Gaussian centered at the middle of
   // the strip
-  for (uint16_t idx = 0; idx <= FastLEDConfig::N / 2; idx++) {
-    gauss8[idx] =
-        exp(-pow(((idx - FastLEDConfig::N / 2) / sigma), 2.f) / 2.f) * 255;
+  for (uint16_t idx = 0; idx <= FLC::N / 2; idx++) {
+    gauss8[idx] = exp(-pow(((idx - FLC::N / 2) / sigma), 2.f) / 2.f) * 255;
   }
 
   // Exploit mirror symmetry
-  for (uint16_t idx = 0; idx < FastLEDConfig::N / 2 - 1; idx++) {
-    gauss8[FastLEDConfig::N / 2 + idx + 1] =
-        gauss8[FastLEDConfig::N / 2 - idx - 1];
+  for (uint16_t idx = 0; idx < FLC::N / 2 - 1; idx++) {
+    gauss8[FLC::N / 2 + idx + 1] = gauss8[FLC::N / 2 - idx - 1];
   }
 
   // Rotate gaussian array to the correct mu
-  std::rotate(gauss8,
-              gauss8 + (FastLEDConfig::N * 3 / 2 - mu) % FastLEDConfig::N,
-              gauss8 + FastLEDConfig::N);
+  std::rotate(gauss8, gauss8 + (FLC::N * 3 / 2 - mu) % FLC::N, gauss8 + FLC::N);
 }
 
-void profile_gauss8strip(uint8_t gauss8[FastLEDConfig::N], float mu,
-                         float sigma) {
+void profile_gauss8strip(uint8_t gauss8[FLC::N], float mu, float sigma) {
   // Calculates a Gaussian profile over the full strip with output range [0 255]
   // Slow, but with sub-pixel accuracy on `mu`
 
   sigma = sigma <= 0 ? 0.01 : sigma;
-  uint16_t mu_round = round(mu);
-  float mu_remainder = mu - mu_round;
+  uint16_t mu_rounded = round(mu);
+  float mu_remainder = mu - mu_rounded;
 
   // Calculate the Gaussian centered at the near middle of the strip
-  for (int16_t idx = 0; idx < FastLEDConfig::N; idx++) {
+  for (int16_t idx = 0; idx < FLC::N; idx++) {
     gauss8[idx] =
-        exp(-pow(((idx - FastLEDConfig::N / 2 - mu_remainder) / sigma), 2.f) /
-            2.f) *
-        255;
+        exp(-pow(((idx - FLC::N / 2 - mu_remainder) / sigma), 2.f) / 2.f) * 255;
   }
 
   // Rotate gaussian array to the correct mu
-  std::rotate(gauss8,
-              gauss8 + (FastLEDConfig::N * 3 / 2 - mu_round) % FastLEDConfig::N,
-              gauss8 + FastLEDConfig::N);
+  std::rotate(gauss8, gauss8 + (FLC::N * 3 / 2 - mu_rounded) % FLC::N,
+              gauss8 + FLC::N);
 }
 
 /*------------------------------------------------------------------------------
@@ -244,10 +235,10 @@ void update__HeartBeat1() {
   fx1[idx1] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
   populate_fx1_strip();
 
-  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(leds_snapshot, FLC::N, 5);
     fadeToBlackBy(fx1, s1, 10);
   }
 }
@@ -308,13 +299,13 @@ void update__HeartBeat2() {
   populate_fx1_strip();
   populate_fx2_strip();
   rotate_strip_90(fx1_strip);
-  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
+  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FLC::N);
 
   // Final mix
-  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(leds_snapshot, FLC::N, 5);
     fadeToBlackBy(fx1, s1, 20);
     fadeToBlackBy(fx2, s2, 10);
   }
@@ -350,10 +341,10 @@ void update__Rainbow() {
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
   populate_fx1_strip();
 
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(leds_snapshot, FLC::N, 5);
   }
   EVERY_N_MILLIS(50) {
     fx_hue_step = round(cubicwave8(wave_idx) / 255. * 15.) + 1;
@@ -390,10 +381,10 @@ void update__Sinelon() {
   fx1[idx1] = CHSV(fx_hue, 255, 255); // fx_hue, 255, 192
   populate_fx1_strip();
 
-  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(leds_snapshot, FLC::N, 5);
     fadeToBlackBy(fx1, s1, 5);
   }
 }
@@ -429,10 +420,10 @@ void update__BPM() {
   populate_fx1_strip();
   rotate_strip_90(fx1);
 
-  add_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 5);
+    fadeToBlackBy(leds_snapshot, FLC::N, 5);
   }
   EVERY_N_MILLISECONDS(30) {
     fx_hue = fx_hue + fx_hue_step;
@@ -477,7 +468,7 @@ void enter__FullWhite() {
 }
 
 void update__FullWhite() {
-  fill_solid(leds, FastLEDConfig::N, CRGB::White);
+  fill_solid(leds, FLC::N, CRGB::White);
 }
 
 State state__FullWhite("FullWhite", update__FullWhite);
@@ -533,10 +524,10 @@ void update__Dennis() {
   fx1[s1 - idx1 - 1] = CRGB::OrangeRed;
   populate_fx1_strip();
 
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
+    fadeToBlackBy(leds_snapshot, FLC::N, 1);
     fadeToBlackBy(fx1, s1, 14);
     if (fx_blend < 255) {
       fx_blend++;
@@ -573,22 +564,22 @@ void update__Try2() {
 
   copy_strip(fx1_strip, fx2_strip);
   flip_strip(fx2_strip);
-  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FastLEDConfig::N);
+  add_CRGBs(fx1_strip, fx2_strip, fx1_strip, FLC::N);
 
   /*
   // Boost blue
-  for (uint16_t i = 0; i < FastLEDConfig::N; i++) {
+  for (uint16_t i = 0; i < FLC::N; i++) {
     fx1_strip[i].blue = scale8(fx1_strip[i].blue, 255);
     //fx1_strip[i].green = scale8(fx1_strip[i].green, 200);
     //fx1_strip[i] |= CRGB(2, 5, 7);
   }
   */
 
-  // blur1d(fx1_strip, FastLEDConfig::N, 128);
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FastLEDConfig::N, fx_blend);
+  // blur1d(fx1_strip, FLC::N, 128);
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FastLEDConfig::N, 1);
+    fadeToBlackBy(leds_snapshot, FLC::N, 1);
     fadeToBlackBy(fx1, s1, 4);
     if (fx_blend < 255) {
       fx_blend++;
@@ -613,7 +604,7 @@ void enter__RainbowBarf() {
 
 void update__RainbowBarf() {
   s1 = segmntr1.get_base_numel();
-  uint8_t gauss8[FastLEDConfig::N]; // Will hold the Gaussian profile
+  uint8_t gauss8[FLC::N]; // Will hold the Gaussian profile
   static float mu;
   float sigma = 6;
 
@@ -632,8 +623,8 @@ void update__RainbowBarf() {
 
   EVERY_N_MILLIS(20) {
     mu += .4;
-    while (mu >= FastLEDConfig::N) {
-      mu -= FastLEDConfig::N;
+    while (mu >= FLC::N) {
+      mu -= FLC::N;
     }
   }
 }
@@ -655,8 +646,8 @@ void enter__RainbowBarf2() {
 
 void update__RainbowBarf2() {
   s1 = segmntr1.get_base_numel();
-  uint8_t gauss8[FastLEDConfig::N]; // Will hold the Gaussian profile
-  static uint16_t wave_idx;         // `triwave8`-index driving `sigma`
+  uint8_t gauss8[FLC::N];   // Will hold the Gaussian profile
+  static uint16_t wave_idx; // `triwave8`-index driving `sigma`
   static uint16_t mu;
   float sigma;
 
@@ -680,9 +671,9 @@ void update__RainbowBarf2() {
     if (wave_idx >= 255) {
       wave_idx -= 255;
 
-      mu += FastLEDConfig::N / 2;
-      while (mu >= FastLEDConfig::N) {
-        mu -= FastLEDConfig::N;
+      mu += FLC::N / 2;
+      while (mu >= FLC::N) {
+        mu -= FLC::N;
       }
     }
   }
@@ -708,8 +699,8 @@ void enter__RainbowSurf() {
 
 void update__RainbowSurf() {
   s1 = segmntr1.get_base_numel();
-  CHSV fx3[FastLEDConfig::N];       // CHSV instead of CRGB
-  uint8_t gauss8[FastLEDConfig::N]; // Will hold the Gaussian profile
+  CHSV fx3[FLC::N];       // CHSV instead of CRGB
+  uint8_t gauss8[FLC::N]; // Will hold the Gaussian profile
   static float mu;
   float sigma = 12;
 
@@ -729,8 +720,8 @@ void update__RainbowSurf() {
 
   EVERY_N_MILLIS(20) {
     mu += .4;
-    while (mu >= FastLEDConfig::N) {
-      mu -= FastLEDConfig::N;
+    while (mu >= FLC::N) {
+      mu -= FLC::N;
     }
   }
   EVERY_N_MILLIS(50) {

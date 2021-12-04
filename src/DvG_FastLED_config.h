@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-namespace FastLEDConfig {
+namespace FLC {
   /* Infinity mirror with 4 equal sides of length `L`.
 
             L
@@ -26,6 +26,6 @@ namespace FastLEDConfig {
   const LEDColorCorrection COLOR_CORRECTION = TypicalSMD5050;
 
   const uint16_t DELAY = round(1000 / 250); // 1000 / FPS, FPS = 250
-} // namespace FastLEDConfig
+} // namespace FLC
 
 #endif

@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-27-11-2021
+04-12-2021
 */
 
 #include <Arduino.h>
@@ -18,7 +18,7 @@ Dennis van Gils
 FASTLED_USING_NAMESPACE
 
 // LED data of the full strip to be send out
-CRGB leds[FastLEDConfig::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
+CRGB leds[FLC::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
 
 extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 
@@ -152,15 +152,14 @@ void setup() {
   while (millis() - tick < 3000) {}
 
   FastLED
-      .addLeds<FastLEDConfig::LED_TYPE, FastLEDConfig::PIN_DATA,
-               FastLEDConfig::PIN_CLK, FastLEDConfig::COLOR_ORDER,
-               DATA_RATE_MHZ(1)>(leds, FastLEDConfig::N)
-      .setCorrection(FastLEDConfig::COLOR_CORRECTION);
+      .addLeds<FLC::LED_TYPE, FLC::PIN_DATA, FLC::PIN_CLK, FLC::COLOR_ORDER,
+               DATA_RATE_MHZ(1)>(leds, FLC::N)
+      .setCorrection(FLC::COLOR_CORRECTION);
 
-  // FastLED.setBrightness(FastLEDConfig::BRIGHTNESS);
+  // FastLED.setBrightness(FLC::BRIGHTNESS);
   FastLED.setBrightness(brightness_table[brightness_idx]);
 
-  fill_solid(leds, FastLEDConfig::N, CRGB::Black);
+  fill_solid(leds, FLC::N, CRGB::Black);
 
   // IR distance sensor
   analogReadResolution(A0_BITS);
@@ -255,17 +254,17 @@ void loop() {
 
   // Master switches
   if (!ENA_leds) {
-    fill_solid(leds, FastLEDConfig::N, CRGB::Black);
+    fill_solid(leds, FLC::N, CRGB::Black);
   } else {
     if (ENA_full_white) {
-      fill_solid(leds, FastLEDConfig::N, CRGB::White);
+      fill_solid(leds, FLC::N, CRGB::White);
     }
   }
 
   // Send out LED data to the strip. `delay()` keeps the framerate modest and
   // allows for brightness dithering. It will invoke FastLED.show() - sending
   // out the LED data - at least once during the delay.
-  FastLED.delay(FastLEDConfig::DELAY);
+  FastLED.delay(FLC::DELAY);
 
   // DEBUG frame rate
   if (ENA_leds & 0) {

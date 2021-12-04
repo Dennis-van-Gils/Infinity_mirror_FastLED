@@ -19,7 +19,7 @@ symmetry.
             L
 
 Dennis van Gils
-20-11-2021
+04-12-2021
 */
 #ifndef DVG_FASTLED_STRIPSEGMENTER_H
 #define DVG_FASTLED_STRIPSEGMENTER_H
@@ -35,7 +35,7 @@ Dennis van Gils
 
 #define STYLE_NAME_LEN 64
 #define CRGB_SIZE sizeof(CRGB)
-#define CRGB_SIZE_L (FastLEDConfig::L * CRGB_SIZE)
+#define CRGB_SIZE_L (FLC::L * CRGB_SIZE)
 
 enum StyleEnum {
   FULL_STRIP,
@@ -63,8 +63,8 @@ const char *style_names[] = {"Full strip",
 
 class FastLED_StripSegmenter {
 private:
-  int L = FastLEDConfig::L;
-  int N = FastLEDConfig::N;
+  int L = FLC::L;
+  int N = FLC::N;
 
   uint16_t s; // = get_base_numel()
   StyleEnum _style;
