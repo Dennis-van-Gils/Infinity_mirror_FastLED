@@ -82,11 +82,12 @@ void update_IR_dist() {
   Finite State Machine managing all the LED effects
 ------------------------------------------------------------------------------*/
 
-std::vector<State> states = {
-    // state__TestPattern,
-    state__HeartBeat1, state__RainbowSurf, state__RainbowBarf,
-    state__Dennis,     state__HeartBeat2,  state__Rainbow,
-    state__Sinelon,    state__RainbowBarf2};
+std::vector<State> states =
+    {
+        // state__TestPattern,
+        state__HeartBeat1, state__RainbowSurf, state__RainbowBarf,
+        state__Dennis,     state__HeartBeat2,  state__Rainbow,
+        state__Sinelon}; // ,state__RainbowBarf2};
 
 bool state_has_changed = true;
 uint16_t state_idx = 0;
