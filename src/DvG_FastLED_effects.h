@@ -153,9 +153,15 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   return true;
 }
 
+/*------------------------------------------------------------------------------
+  Guassian profiles
+------------------------------------------------------------------------------*/
+
 void profile_gauss8strip(uint8_t gauss8[FLC::N], uint16_t mu, float sigma) {
-  // Calculates a Gaussian profile over the full strip with output range [0 255]
-  // Fast, because `mu` is integer
+  /* Calculates a Gaussian profile with output range [0 255] over the full strip
+  using periodic boundaries, i.e. wrapping around the strip.
+  Fast, because `mu` is integer.
+  */
 
   sigma = sigma <= 0 ? 0.01 : sigma;
 
@@ -175,8 +181,10 @@ void profile_gauss8strip(uint8_t gauss8[FLC::N], uint16_t mu, float sigma) {
 }
 
 void profile_gauss8strip(uint8_t gauss8[FLC::N], float mu, float sigma) {
-  // Calculates a Gaussian profile over the full strip with output range [0 255]
-  // Slow, but with sub-pixel accuracy on `mu`
+  /* Calculates a Gaussian profile with output range [0 255] over the full strip
+  using periodic boundaries, i.e. wrapping around the strip.
+  Slow, but with sub-pixel accuracy on `mu`.
+  */
 
   sigma = sigma <= 0 ? 0.01 : sigma;
   uint16_t mu_rounded = round(mu);
@@ -687,7 +695,6 @@ State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
 
   A slowly shifting rainbow over the full strip with a faster smaller rainbow
   wave surfing on top.
-
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
