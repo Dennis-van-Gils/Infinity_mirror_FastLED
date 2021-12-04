@@ -153,33 +153,14 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   return true;
 }
 
-void calculate_gauss8strip(uint8_t gauss8[FastLEDConfig::N], float mu,
-                           float sigma) {
-  // Slow, but with sub-pixel accuracy on `mu`.
-
-  uint16_t mu_round = round(mu);
-  float mu_remainder = mu - mu_round;
-
-  // Calculate the left-side (zero included) gaussian centered at the middle of
-  // the strip
-  for (int16_t idx = 0; idx < FastLEDConfig::N; idx++) {
-    gauss8[idx] =
-        exp(-pow(((idx - FastLEDConfig::N / 2 - mu_remainder) / sigma), 2.f) /
-            2.f) *
-        255;
-  }
-
-  // Rotate gaussian array to the correct mu
-  std::rotate(gauss8,
-              gauss8 + (FastLEDConfig::N * 3 / 2 - mu_round) % FastLEDConfig::N,
-              gauss8 + FastLEDConfig::N);
-}
-
-void calculate_gauss8strip(uint8_t gauss8[FastLEDConfig::N], uint16_t mu,
-                           float sigma) {
+void profile_gauss8strip(uint8_t gauss8[FastLEDConfig::N], uint16_t mu,
+                         float sigma) {
+  // Calculates a Gaussian profile over the full strip with output range [0 255]
   // Fast, because `mu` is integer
 
-  // Calculate the left-side (zero included) gaussian centered at the middle of
+  sigma = sigma <= 0 ? 0.01 : sigma;
+
+  // Calculate the left-side (zero included) Gaussian centered at the middle of
   // the strip
   for (uint16_t idx = 0; idx <= FastLEDConfig::N / 2; idx++) {
     gauss8[idx] =
@@ -195,6 +176,29 @@ void calculate_gauss8strip(uint8_t gauss8[FastLEDConfig::N], uint16_t mu,
   // Rotate gaussian array to the correct mu
   std::rotate(gauss8,
               gauss8 + (FastLEDConfig::N * 3 / 2 - mu) % FastLEDConfig::N,
+              gauss8 + FastLEDConfig::N);
+}
+
+void profile_gauss8strip(uint8_t gauss8[FastLEDConfig::N], float mu,
+                         float sigma) {
+  // Calculates a Gaussian profile over the full strip with output range [0 255]
+  // Slow, but with sub-pixel accuracy on `mu`
+
+  sigma = sigma <= 0 ? 0.01 : sigma;
+  uint16_t mu_round = round(mu);
+  float mu_remainder = mu - mu_round;
+
+  // Calculate the Gaussian centered at the near middle of the strip
+  for (int16_t idx = 0; idx < FastLEDConfig::N; idx++) {
+    gauss8[idx] =
+        exp(-pow(((idx - FastLEDConfig::N / 2 - mu_remainder) / sigma), 2.f) /
+            2.f) *
+        255;
+  }
+
+  // Rotate gaussian array to the correct mu
+  std::rotate(gauss8,
+              gauss8 + (FastLEDConfig::N * 3 / 2 - mu_round) % FastLEDConfig::N,
               gauss8 + FastLEDConfig::N);
 }
 
@@ -604,33 +608,29 @@ State state__Try2("Try2", enter__Try2, update__Try2);
 
 void enter__RainbowBarf() {
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
-  clear_CRGBs(fx1);
-  clear_CRGBs(fx1_strip);
-  fx_timebase = millis();
+  fx_starting = true;
 }
 
 void update__RainbowBarf() {
   s1 = segmntr1.get_base_numel();
-  uint8_t gauss8[FastLEDConfig::N];
-  static uint16_t wave_idx = 0;
-  static float mu = 6.;
+  uint8_t gauss8[FastLEDConfig::N]; // Will hold the Gaussian profile
+  static float mu;
   float sigma = 6;
 
-  calculate_gauss8strip(gauss8, mu, sigma);
+  if (fx_starting) {
+    fx_starting = false;
+    mu = 0;
+  }
+  profile_gauss8strip(gauss8, mu, sigma);
 
   for (idx1 = 0; idx1 < s1; idx1++) {
-    // fx1_strip[idx1] = CRGB(gauss8[idx1], 0, 0);
+    // fx1[idx1] = CRGB(gauss8[idx1], 0, 0);
     fx1[idx1] = ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
   }
   populate_fx1_strip();
   copy_strip(fx1_strip, leds);
 
   EVERY_N_MILLIS(20) {
-    wave_idx += 1;
-    if (wave_idx >= 255) {
-      wave_idx -= 255;
-    }
-
     mu += .4;
     while (mu >= FastLEDConfig::N) {
       mu -= FastLEDConfig::N;
@@ -650,23 +650,26 @@ State state__RainbowBarf("RainbowBarf", enter__RainbowBarf,
 
 void enter__RainbowBarf2() {
   segmntr1.set_style(StyleEnum::FULL_STRIP);
-  clear_CRGBs(fx1);
-  clear_CRGBs(fx1_strip);
-  fx_timebase = millis();
+  fx_starting = true;
 }
 
 void update__RainbowBarf2() {
   s1 = segmntr1.get_base_numel();
-  uint8_t gauss8[FastLEDConfig::N];
-  static uint16_t wave_idx = 0;
-  static uint16_t mu = 6;
+  uint8_t gauss8[FastLEDConfig::N]; // Will hold the Gaussian profile
+  static uint16_t wave_idx;         // `triwave8`-index driving `sigma`
+  static uint16_t mu;
+  float sigma;
 
-  float sigma = ((float)triwave8(wave_idx) / 255) * 24 + .01;
+  if (fx_starting) {
+    fx_starting = false;
+    wave_idx = 0;
+    mu = 6;
+  }
 
-  calculate_gauss8strip(gauss8, mu, sigma);
+  sigma = ((float)triwave8(wave_idx) / 255) * 24;
+  profile_gauss8strip(gauss8, mu, sigma);
 
   for (idx1 = 0; idx1 < s1; idx1++) {
-    // fx1_strip[idx1] = CRGB(gauss8[idx1], 0, 0);
     fx1[idx1] = ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
   }
   populate_fx1_strip();
@@ -676,6 +679,7 @@ void update__RainbowBarf2() {
     wave_idx += 1;
     if (wave_idx >= 255) {
       wave_idx -= 255;
+
       mu += FastLEDConfig::N / 2;
       while (mu >= FastLEDConfig::N) {
         mu -= FastLEDConfig::N;
@@ -688,29 +692,34 @@ State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
                           update__RainbowBarf2);
 
 /*------------------------------------------------------------------------------
-  RainbowBarf3
+  RainbowSurf
 
   A slowly shifting rainbow over the full strip with a faster smaller rainbow
-  wave riding on top.
+  wave surfing on top.
 
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
-void enter__RainbowBarf3() {
+void enter__RainbowSurf() {
   segmntr1.set_style(StyleEnum::FULL_STRIP);
+  fx_starting = true;
   fx_hue = 0;
 }
 
-void update__RainbowBarf3() {
+void update__RainbowSurf() {
   s1 = segmntr1.get_base_numel();
-  CHSV fx3[FastLEDConfig::N]; // CHSV instead of CRGB
-  uint8_t gauss8[FastLEDConfig::N];
+  CHSV fx3[FastLEDConfig::N];       // CHSV instead of CRGB
+  uint8_t gauss8[FastLEDConfig::N]; // Will hold the Gaussian profile
+  static float mu;
+  float sigma = 12;
 
   fill_rainbow(fx3, s1, fx_hue, 255 / (s1 - 1));
 
-  static float mu = 6.;
-  float sigma = 12;
-  calculate_gauss8strip(gauss8, mu, sigma);
+  if (fx_starting) {
+    fx_starting = false;
+    mu = 6.;
+  }
+  profile_gauss8strip(gauss8, mu, sigma);
 
   for (idx1 = 0; idx1 < s1; idx1++) {
     fx1[idx1] = CHSV(fx3[idx1].hue + gauss8[idx1], 255, 255);
@@ -729,8 +738,8 @@ void update__RainbowBarf3() {
   }
 }
 
-State state__RainbowBarf3("RainbowBarf3", enter__RainbowBarf3,
-                          update__RainbowBarf3);
+State state__RainbowSurf("RainbowSurf", enter__RainbowSurf,
+                         update__RainbowSurf);
 
 /*------------------------------------------------------------------------------
   TestPattern
