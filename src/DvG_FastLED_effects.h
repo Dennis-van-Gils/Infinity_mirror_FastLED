@@ -207,7 +207,7 @@ void profile_gauss8strip(uint8_t gauss8[FLC::N], float mu, float sigma) {
   A beating heart. You must call `generate_HeartBeat()` once in `setup()`.
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
-#define ECG_N_SMP 255 // == max uint8_t, so you can use `beat8()` for timing
+#define ECG_N_SMP 256 // 256 so you can use `beat8()` for timing
 
 namespace ECG {
   static float wave[ECG_N_SMP] = {0};
@@ -237,7 +237,7 @@ void update__HeartBeat1() {
 
   ECG_idx = beat8(30, fx_timebase);
   ECG_ampl = ECG::wave[ECG_idx];
-  ECG_ampl = max(ECG_ampl, 0.12); // Suppress ECG depolarization from the wave
+  ECG_ampl = max(ECG_ampl, 0.13); // Suppress ECG depolarization from the wave
 
   idx1 = round((1 - ECG_ampl) * (s1 - 1));
   fx1[idx1] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
@@ -274,7 +274,7 @@ void update__HeartBeat2() {
 
   // Effect 1
   idx1 = round(beatsin8(heart_rate / 2, 0, 255, fx_timebase) / 255. * (s1 - 1));
-  if ((idx1 < s1 / 4) | (idx1 > s1 * 3 / 4)) {
+  if ((idx1 < s1 / 3) | (idx1 > s1 * 2 / 3)) {
     fx1[idx1] = CRGB::Red;
     // fx1[idx1] += CHSV(HUE_RED, 255, fx_intens);
   }
@@ -607,7 +607,9 @@ State state__Try2("Try2", enter__Try2, update__Try2);
 
 void enter__RainbowBarf() {
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
+  create_leds_snapshot();
   fx_starting = true;
+  fx_blend = 0;
 }
 
 void update__RainbowBarf() {
@@ -627,12 +629,17 @@ void update__RainbowBarf() {
     fx1[idx1] = ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
   }
   populate_fx1_strip();
-  copy_strip(fx1_strip, leds);
+
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(20) {
     mu += .4;
     while (mu >= FLC::N) {
       mu -= FLC::N;
+    }
+    fadeToBlackBy(leds_snapshot, FLC::N, 10);
+    if (fx_blend < 255) {
+      fx_blend++;
     }
   }
 }
@@ -691,6 +698,44 @@ State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
                           update__RainbowBarf2);
 
 /*------------------------------------------------------------------------------
+  RainbowHeartBeat
+  Still ugly staccato
+  Author: Dennis van Gils
+------------------------------------------------------------------------------*/
+
+void enter__RainbowHeartBeat() {
+  segmntr1.set_style(StyleEnum::FULL_STRIP);
+  fx_timebase = millis();
+}
+
+void update__RainbowHeartBeat() {
+  s1 = segmntr1.get_base_numel();
+  uint8_t gauss8[FLC::N]; // Will hold the Gaussian profile
+  uint8_t ECG_idx;        // Driving `sigma`
+  uint16_t mu = 6;
+  float sigma;
+  static uint8_t heart_rate = 30;
+
+  ECG_idx = beat8(heart_rate, fx_timebase);
+  sigma = ECG::wave[ECG_idx] - 0.13; // -0.13 removes ECG depolarization
+  profile_gauss8strip(gauss8, mu, sigma * 6);
+
+  for (idx1 = 0; idx1 < s1; idx1++) {
+    fx1[idx1] = ColorFromPalette(RainbowColors_p, gauss8[idx1], gauss8[idx1]);
+  }
+  populate_fx1_strip();
+
+  copy_strip(fx1_strip, leds);
+
+  EVERY_N_MILLIS(20) {
+    // fadeToBlackBy(fx1, FLC::N, 60);
+  }
+}
+
+State state__RainbowHeartBeat("RainbowHeartBeat", enter__RainbowHeartBeat,
+                              update__RainbowHeartBeat);
+
+/*------------------------------------------------------------------------------
   RainbowSurf
 
   A slowly shifting rainbow over the full strip with a faster smaller rainbow
@@ -700,7 +745,9 @@ State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
 
 void enter__RainbowSurf() {
   segmntr1.set_style(StyleEnum::FULL_STRIP);
+  create_leds_snapshot();
   fx_starting = true;
+  fx_blend = 0;
   fx_hue = 0;
 }
 
@@ -723,12 +770,17 @@ void update__RainbowSurf() {
     fx1[idx1] = CHSV(fx3[idx1].hue + gauss8[idx1], 255, 255);
   }
   populate_fx1_strip();
-  copy_strip(fx1_strip, leds);
+
+  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(20) {
     mu += .4;
     while (mu >= FLC::N) {
       mu -= FLC::N;
+    }
+    fadeToBlackBy(leds_snapshot, FLC::N, 10);
+    if (fx_blend < 255) {
+      fx_blend++;
     }
   }
   EVERY_N_MILLIS(50) {
