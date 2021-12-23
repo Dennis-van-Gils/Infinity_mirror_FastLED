@@ -278,8 +278,19 @@ void loop() {
     update_IR_dist();
   }
   if (ENA_auto_next_state) {
-    EVERY_N_SECONDS(20) {
-      next_state();
+    if (state_idx == 0) {
+      if (fsm.timeInCurrentState() > 10000) {
+        next_state();
+      }
+    } else {
+      if (fsm.timeInCurrentState() > 20000) {
+        next_state();
+      }
+      /*
+      EVERY_N_SECONDS(20) {
+        next_state();
+      }
+      */
     }
   }
   /*
