@@ -1,25 +1,34 @@
-Adafruit Feather/ItsyBitsy M4 Express
+* Adafruit Feather/ItsyBitsy M4 Express
 
 * RGB LED strip
-LS5RGB60 APA102 CP
-5 V, 5050
-'Dotstar' type
-LEDTUNING.NL
+  LS5RGB60 APA102 CP from LEDTUNING.NL
+  'Dotstar' type
+  5 V, 5050
 
-Testing 52 leds:
-  5 V, 2.5 A switching power supply:
-    max current @ full white = 1.3 A
+  Testing 52 leds:
+    5 V, 2.5 A switching power supply:
+      max current @ full white = 1.3 A
 
-  5 V, 2.0 A switching power supply:
-    max current @ full white = 1.13 A
-    --> underpowered PSU
+    5 V, 2.0 A switching power supply:
+      max current @ full white = 1.13 A
+      --> underpowered PSU
 
---> strip direction -->
+  --> strip direction -->
 
-              pin
-VCC - Brown
-CLK - White   SPI_SCK
-DAT - Blue    SPI_MOSI
-GND - Black  
+                pin
+  VCC - Brown
+  CLK - White   SPI_SCK
+  DAT - Blue    SPI_MOSI
+  GND - Black  
 
-Add a 1000µF (6.3V or higher) capacitor close to the strip between VCC and GND
+  Adafruit recommends:
+  Add a 1000µF (6.3V or higher) capacitor close to the strip between VCC and GND
+
+* IR distance sensor
+  Sharp 2Y0A02
+  
+  Brown: 3.3V
+  Black: GND
+  Blue : analog out to pin A0 on Arduino           
+  
+  Fit: distance [cm] = A / bitval ^ C - B, where bitval is at 10-bit
