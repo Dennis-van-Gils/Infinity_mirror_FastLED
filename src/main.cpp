@@ -25,6 +25,7 @@ extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
 // Master switches
 static bool ENA_leds = true;            // Enable leds?
 static bool ENA_full_white = false;     // Override with full white?
+static bool ENA_IRDistTest = false;     // Override with IR distance test?
 static bool ENA_auto_next_state = true; // Automatically go to next state?
 
 // Brightness
@@ -49,9 +50,10 @@ ANSI ansi(&Serial);
 */
 // clang-format off
 #define A0_BITS 10
-uint8_t IR_dist = 0;     // [cm] // EXTERNALLY read by `DvG_FastLED_effects.h`
-const uint8_t IR_MIN_DIST = 16;  // [cm]
-const uint8_t IR_MAX_DIST = 150; // [cm]
+uint8_t IR_dist = 0;     // [cm]  // EXTERNALLY read by `DvG_FastLED_effects.h`
+float IR_dist_fract = 0; // [0-1] // EXTERNALLY read by `DvG_FastLED_effects.h`
+const uint8_t IR_MIN_DIST = 16;   // [cm]
+const uint8_t IR_MAX_DIST = 150;  // [cm]
 const float   IR_CALIB_A = 1512.89;
 const uint8_t IR_CALIB_B = 74;
 const float   IR_CALIB_C = 0.424;
@@ -68,13 +70,16 @@ void update_IR_dist() {
 
   IR_dist_RA.addValue(val);
   IR_dist = IR_dist_RA.getAverage();
+  IR_dist_fract = (IR_dist - IR_MIN_DIST) / (float)(IR_MAX_DIST - IR_MIN_DIST);
 
   if (0) {
     Ser.print(A0);
     Ser.print("\t");
     Ser.print(val);
     Ser.print("\t");
-    Ser.println(IR_dist);
+    Ser.print(IR_dist);
+    Ser.print("\t");
+    Ser.println(IR_dist_fract);
   }
 }
 
@@ -228,6 +233,12 @@ void loop() {
       Ser.print("Full white ");
       Ser.println(ENA_full_white ? "ON" : "OFF");
 
+    } else if (charCmd == 'i') {
+      ENA_IRDistTest = !ENA_IRDistTest;
+      ENA_auto_next_state = !ENA_IRDistTest;
+      Ser.print("IR distance test ");
+      Ser.println(ENA_IRDistTest ? "ON" : "OFF");
+
     } else {
       Ser.println("\nInfinity Mirror");
       Ser.println("---------------");
@@ -245,7 +256,12 @@ void loop() {
     }
   }
 
-  fsm.update(); // CRITICAL
+  // Master switch
+  if (ENA_IRDistTest) {
+    fsm.transitionTo(state__IRDistTest);
+  }
+
+  fsm.update(); // CRITICAL, calculates current LED effect
 
   // Note: Printing state name can only happen after the call to `fsm.update()`
   if (state_has_changed) {

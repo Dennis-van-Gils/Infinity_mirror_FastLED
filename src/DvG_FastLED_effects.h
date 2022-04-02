@@ -61,6 +61,7 @@ static uint8_t  fx_blend    = 127;
 
 // IR distance sensor
 extern uint8_t IR_dist;           // Defined in `main.cpp`
+extern float IR_dist_fract;       // Defined in `main.cpp`
 extern const uint8_t IR_MIN_DIST; // Defined in `main.cpp`
 extern const uint8_t IR_MAX_DIST; // Defined in `main.cpp`
 
@@ -815,5 +816,25 @@ void update__TestPattern() {
 
 State state__TestPattern("TestPattern", enter__TestPattern,
                          update__TestPattern);
+
+/*------------------------------------------------------------------------------
+  IR distance test
+
+  First LED : Green
+  Last  LED : Red
+  In between: Alternating blue/yellow
+------------------------------------------------------------------------------*/
+
+void enter__IRDistTest() {
+  // segmntr1.set_style(StyleEnum::COPIED_SIDES);
+}
+
+void update__IRDistTest() {
+  CRGB color =
+      ColorFromPalette(RainbowColors_p, (uint8_t)(IR_dist_fract * 255));
+  fill_solid(leds, FLC::N, color);
+}
+
+State state__IRDistTest("IRDistTest", enter__IRDistTest, update__IRDistTest);
 
 #endif
