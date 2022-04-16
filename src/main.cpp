@@ -29,10 +29,9 @@ static bool ENA_auto_next_fx = true; // Automatically go to next effect?
 static bool ENA_print_FPS = false;   // Print FPS counter to serial?
 
 // Brightness
-uint8_t brightness_idx = 5;
-const uint8_t brightness_table[] = {0,   1,   16,  32,  48,  64,
-                                    80,  96,  112, 128, 144, 160,
-                                    176, 192, 208, 224, 240, 255};
+uint8_t bright_idx = 6;
+const uint8_t bright_lut[] = {0,   4,   8,   16,  32,  48,  64,  80,  96, 112,
+                              128, 144, 160, 176, 192, 208, 224, 240, 255};
 
 const byte PIN_BUTTON = 9;
 Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
@@ -234,7 +233,7 @@ void setup() {
   FastLED.addLeds<FLC::LED_TYPE, FLC::PIN_DATA, FLC::PIN_CLK, FLC::COLOR_ORDER,
                   DATA_RATE_MHZ(1)>(leds, FLC::N);
   FastLED.setCorrection(FLC::COLOR_CORRECTION);
-  FastLED.setBrightness(brightness_table[brightness_idx]);
+  FastLED.setBrightness(bright_lut[bright_idx]);
   fill_solid(leds, FLC::N, CRGB::Black);
 
 #ifdef ADAFRUIT_ITSYBITSY_M4_EXPRESS
@@ -274,32 +273,29 @@ void loop() {
       fx_mgr.print_style(&Ser);
 
     } else if (char_cmd == '`') {
-      Ser.print("Output ");
+      Ser.print("Output: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_BLACK) ? "OFF"
                                                                        : "ON");
 
     } else if (char_cmd == 'w') {
-      Ser.print("All white ");
+      Ser.print("All white: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_WHITE) ? "ON"
                                                                        : "OFF");
 
     } else if (char_cmd == 'i') {
-      Ser.print("IR distance test ");
+      Ser.print("IR distance test: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::IR_DIST) ? "ON"
                                                                      : "OFF");
 
     } else if (char_cmd == 'z') {
-      Ser.print("Test pattern ");
+      Ser.print("Test pattern: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::TEST_PATTERN)
                       ? "ON"
                       : "OFF");
 
-    } else if (char_cmd == 'f') {
-      ENA_print_FPS = !ENA_print_FPS;
-
     } else if (char_cmd == 'q') {
       ENA_auto_next_fx = !ENA_auto_next_fx;
-      Ser.print("Auto-next effect ");
+      Ser.print("Auto-next FX: ");
       Ser.println(ENA_auto_next_fx ? "ON" : "OFF");
 
     } else if ((char_cmd >= '0') && (char_cmd <= '9')) {
@@ -320,18 +316,20 @@ void loop() {
       fx_mgr.print_style(&Ser);
 
     } else if (char_cmd == '-') {
-      brightness_idx = brightness_idx > 0 ? brightness_idx - 1 : 0;
-      FastLED.setBrightness(brightness_table[brightness_idx]);
+      bright_idx = bright_idx > 0 ? bright_idx - 1 : 0;
+      FastLED.setBrightness(bright_lut[bright_idx]);
       Ser.print("Brightness ");
-      Ser.println(brightness_table[brightness_idx]);
+      Ser.println(bright_lut[bright_idx]);
 
     } else if ((char_cmd == '+') || (char_cmd == '=')) {
-      brightness_idx = brightness_idx < sizeof(brightness_table) - 2
-                           ? brightness_idx + 1
-                           : sizeof(brightness_table) - 1;
-      FastLED.setBrightness(brightness_table[brightness_idx]);
+      bright_idx = bright_idx < sizeof(bright_lut) - 2 ? bright_idx + 1
+                                                       : sizeof(bright_lut) - 1;
+      FastLED.setBrightness(bright_lut[bright_idx]);
       Ser.print("Brightness ");
-      Ser.println(brightness_table[brightness_idx]);
+      Ser.println(bright_lut[bright_idx]);
+
+    } else if (char_cmd == 'f') {
+      ENA_print_FPS = !ENA_print_FPS;
 
     } else if (char_cmd == 'r') {
       NVIC_SystemReset();
