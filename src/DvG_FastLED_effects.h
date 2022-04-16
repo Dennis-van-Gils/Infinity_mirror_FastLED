@@ -32,7 +32,6 @@ Dennis van Gils
 using namespace std;
 
 // External variables defined in `main.cpp`
-extern FSM fsm_fx;
 extern uint8_t IR_dist_cm;
 extern float IR_dist_fract;
 
@@ -55,7 +54,8 @@ bool fx_has_finished = false;
 static uint16_t idx1; // LED position index used for `fx1`
 static uint16_t idx2; // LED position index used for `fx2`
 static bool     fx_starting = false;
-static uint32_t fx_timebase = 0;
+static uint32_t fx_t0       = 0;  // `millis()` value at start of effect
+static uint32_t fx_timebase = 0;  // 'millis()` value at arbitrary moment
 static uint8_t  fx_hue      = 0;
 static uint8_t  fx_hue_step = 1;
 static uint8_t  fx_intens   = 255;
@@ -689,6 +689,7 @@ void entr__RainbowSurf() {
   fx_starting = true;
   fx_blend = 0;
   fx_hue = 0;
+  fx_t0 = millis();
 }
 
 void upd__RainbowSurf() {
@@ -728,7 +729,7 @@ void upd__RainbowSurf() {
   }
 
   // DEBUG: Working proof of concept for new mechanism `auto next fx`
-  if (fsm_fx.timeInCurrentState() > 20000) {
+  if (millis() - fx_t0 > 4000) {
     fx_has_finished = true;
   }
 }

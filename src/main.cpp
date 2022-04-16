@@ -12,22 +12,18 @@ Dennis van Gils
 #include "RunningAverage.h"
 #include "avdweb_Switch.h"
 
-#include "DvG_FastLED_config.h"
-#include "DvG_FastLED_effects.h"
-
 FASTLED_USING_NAMESPACE
 
-/* NOT NEEDED TO DECLARE EXTERN IN `main.cpp`. Using `#include` is sufficient.
-// External variables defined in `DvG_FastLED_effects.h`
-extern CRGB leds[FLC::N];
-extern FastLED_StripSegmenter segmntr1;
-*/
+#define Ser Serial
+#define USE_ANSI
+#ifdef USE_ANSI
+#  include "ansi.h"
+ANSI ansi(&Serial);
+#endif
 
-// Master switches
-static bool ENA_override_AllBlack = false; // Override: Turn off all leds?
-static bool ENA_override_AllWhite = false; // Override: Turn all leds to white?
-static bool ENA_override_IRDist = false;   // Override: IR distance test?
-static bool ENA_override = false;          // Set by any of the above
+#include "DvG_FastLED_EffectManager.h"
+#include "DvG_FastLED_config.h"
+#include "DvG_FastLED_effects.h"
 
 static bool ENA_auto_next_fx = true; // Automatically go to next effect?
 static bool ENA_print_FPS = false;   // Print FPS counter to serial?
@@ -38,16 +34,27 @@ const uint8_t brightness_table[] = {0,   1,   16,  32,  48,  64,
                                     80,  96,  112, 128, 144, 160,
                                     176, 192, 208, 224, 240, 255};
 
-#define Ser Serial
-
-#define USE_ANSI
-#ifdef USE_ANSI
-#  include "ansi.h"
-ANSI ansi(&Serial);
-#endif
-
 const byte PIN_BUTTON = 9;
 Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
+
+/*------------------------------------------------------------------------------
+  Manager to the Finite State Machine which governs calculating the selected
+  FastLED effect
+------------------------------------------------------------------------------*/
+
+// clang-format off
+FastLED_EffectManager fx_mgr = FastLED_EffectManager(
+  {
+    fx__HeartBeat,
+    fx__RainbowSurf,
+    fx__RainbowBarf,
+    fx__Dennis,
+    fx__HeartBeat_2,
+    fx__Rainbow,
+    fx__Sinelon,
+    // fx__RainbowBarf_2,
+    });
+// clang-format on
 
 /*------------------------------------------------------------------------------
   IR distance sensor
@@ -83,7 +90,7 @@ void update_IR_dist() {
   IR_dist_fract =
       ((float)IR_dist_cm - IR_DIST_MIN) / (IR_DIST_MAX - IR_DIST_MIN);
 
-  if (ENA_override_IRDist) {
+  if (fx_mgr.fx_override() == FxOverrideEnum::IR_DIST) {
     Ser.print(bitval);
     Ser.print("\t");
     Ser.print(instant_cm);
@@ -92,76 +99,6 @@ void update_IR_dist() {
     Ser.print("\t");
     Ser.println(IR_dist_fract);
   }
-}
-
-/*------------------------------------------------------------------------------
-  Finite State Machine: `fsm_fx`
-  Governs calculating the selected FastLED effect
-------------------------------------------------------------------------------*/
-
-bool fx_has_changed = true;
-uint16_t fx_idx = 0;
-
-std::vector<State> fx_list = { // fx__TestPattern,
-    fx__HeartBeat,   fx__RainbowSurf, fx__RainbowBarf, fx__Dennis,
-    fx__HeartBeat_2, fx__Rainbow,     fx__Sinelon}; // ,fx__RainbowBarf_2};
-
-// Finite State Machine governing the FastLED effect calculation
-FSM fsm_fx = FSM(fx_list[fx_idx]);
-
-void set_fx(uint16_t idx) {
-  fx_idx = min(idx, fx_list.size() - 1);
-  fsm_fx.transitionTo(fx_list[fx_idx]);
-  fx_has_changed = true;
-
-  ENA_override_AllBlack = false;
-  ENA_override_AllWhite = false;
-  ENA_override_IRDist = false;
-  ENA_override = false;
-}
-
-void next_fx() {
-  set_fx((fx_idx + 1) % fx_list.size());
-}
-
-void prev_fx() {
-  set_fx((fx_idx + fx_list.size() - 1) % fx_list.size());
-}
-
-void print_fx() {
-  // NOTE: `fsm_fx.update()` must have run to print out the proper effect name
-  static char buffer[STATE_NAME_LEN] = {"\0"};
-  fsm_fx.getCurrentStateName(buffer);
-#ifdef USE_ANSI
-  ansi.foreground(ANSI::yellow);
-#endif
-  Ser.print("Effect: ");
-  if (ENA_override) {
-    Ser.print("*");
-  } else {
-    Ser.print(fx_idx);
-  }
-  Ser.print(" - \"");
-  Ser.print(buffer);
-  Ser.println("\"");
-#ifdef USE_ANSI
-  ansi.normal();
-#endif
-}
-
-void print_style() {
-  static char buffer[STYLE_NAME_LEN] = {"\0"};
-  segmntr1.get_style_name(buffer);
-#ifdef USE_ANSI
-  ansi.foreground(ANSI::white | ANSI::bright);
-#endif
-  Ser.print("Style : ");
-  Ser.print((int)segmntr1.get_style());
-  Ser.print(" - ");
-  Ser.println(buffer);
-#ifdef USE_ANSI
-  ansi.normal();
-#endif
 }
 
 /*------------------------------------------------------------------------------
@@ -195,6 +132,7 @@ void flash_menu(const struct CRGB &color) {
 }
 
 void entr__ShowMenu() {
+  Ser.println("Entering MENU");
   flash_menu(CRGB::Red);
 }
 
@@ -211,27 +149,29 @@ void upd__ShowMenu() {
 
   // Check for button presses
   button.poll();
-  if (button.longPress()) {
-    Ser.println("long pressed");
-    fsm_main.transitionTo(show__FastLED);
-  }
   if (button.singleClick()) {
     Ser.println("single click");
     leds_offset += 13;
     leds_offset %= FLC::N;
   }
+  if (button.longPress()) {
+    Ser.println("long press");
+    fsm_main.transitionTo(show__FastLED);
+  }
 }
 
 void exit__ShowMenu() {
+  Ser.println("Exiting MENU");
   flash_menu(CRGB::Green);
 }
 
 void upd__ShowFastLED() {
-  fsm_fx.update(); // CRITICAL, calculates current LED effect
+  // CRITICAL: Calculate the current FastLED effect
+  fx_mgr.update();
 
-  if (fx_has_changed) {
-    fx_has_changed = false;
-    print_fx();
+  if (fx_mgr.fx_has_changed()) {
+    fx_mgr.print_fx(&Ser);
+    fx_mgr.print_style(&Ser);
   }
 
   // Send out LED data to the strip. `delay()` keeps the framerate modest and
@@ -248,19 +188,35 @@ void upd__ShowFastLED() {
 
   // Check for button presses
   button.poll();
-  if (button.longPress()) {
-    Ser.println("long pressed");
-    fsm_main.transitionTo(show__Menu);
-  }
   if (button.singleClick()) {
     Ser.println("single click");
-    if (!ENA_override) {
-      next_fx();
+    if (!fx_mgr.fx_override()) {
+      fx_mgr.next_fx();
+    }
+  }
+  if (button.longPress()) {
+    Ser.println("long press");
+    fsm_main.transitionTo(show__Menu);
+  }
+
+  // DEBUG: Working proof of concept for new mechanism auto-next fx`
+  if (ENA_auto_next_fx & fx_has_finished & !fx_mgr.fx_override()) {
+    fx_mgr.next_fx();
+  }
+
+  // Original approach
+  if (ENA_auto_next_fx & !fx_mgr.fx_override()) {
+    if (fx_mgr.fx_idx() == 0) {
+      if (fx_mgr.time_in_current_fx() > 9800) {
+        fx_mgr.next_fx();
+      }
+    } else {
+      if (fx_mgr.time_in_current_fx() > 13000) {
+        fx_mgr.next_fx();
+      }
     }
   }
 }
-
-// FSM fsm_main = FSM(state__ShowFastLED);
 
 /*------------------------------------------------------------------------------
   setup
@@ -307,96 +263,69 @@ void setup() {
 ------------------------------------------------------------------------------*/
 
 void loop() {
-  char charCmd; // Incoming serial command
+  char char_cmd; // Incoming serial command
 
   // Check for incoming serial commands
   if (Ser.available() > 0) {
-    charCmd = Serial.read();
+    char_cmd = Serial.read();
 
-    if (charCmd == '?') {
-      print_fx();
-      print_style();
+    if (char_cmd == '?') {
+      fx_mgr.print_fx(&Ser);
+      fx_mgr.print_style(&Ser);
 
-    } else if (charCmd == '`') {
-      ENA_override_AllBlack = !ENA_override_AllBlack;
-      ENA_override_AllWhite = false;
-      ENA_override_IRDist = false;
-      if (ENA_override_AllBlack) {
-        ENA_override = true;
-        fsm_fx.transitionTo(fx__AllBlack);
-        fx_has_changed = true;
-      } else {
-        ENA_override = false;
-        fsm_fx.transitionTo(fx_list[fx_idx]);
-        fx_has_changed = true;
-      }
+    } else if (char_cmd == '`') {
       Ser.print("Output ");
-      Ser.println(ENA_override_AllBlack ? "OFF" : "ON");
+      Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_BLACK) ? "OFF"
+                                                                       : "ON");
 
-    } else if (charCmd == 'w') {
-      ENA_override_AllBlack = false;
-      ENA_override_AllWhite = !ENA_override_AllWhite;
-      ENA_override_IRDist = false;
-      if (ENA_override_AllWhite) {
-        ENA_override = true;
-        fsm_fx.transitionTo(fx__AllWhite);
-        fx_has_changed = true;
-      } else {
-        ENA_override = false;
-        fsm_fx.transitionTo(fx_list[fx_idx]);
-        fx_has_changed = true;
-      }
+    } else if (char_cmd == 'w') {
       Ser.print("All white ");
-      Ser.println(ENA_override_AllWhite ? "ON" : "OFF");
+      Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_WHITE) ? "ON"
+                                                                       : "OFF");
 
-    } else if (charCmd == 'i') {
-      ENA_override_AllBlack = false;
-      ENA_override_AllWhite = false;
-      ENA_override_IRDist = !ENA_override_IRDist;
-      if (ENA_override_IRDist) {
-        ENA_override = true;
-        fsm_fx.transitionTo(fx__IRDist);
-        fx_has_changed = true;
-      } else {
-        ENA_override = false;
-        fsm_fx.transitionTo(fx_list[fx_idx]);
-        fx_has_changed = true;
-      }
+    } else if (char_cmd == 'i') {
       Ser.print("IR distance test ");
-      Ser.println(ENA_override_IRDist ? "ON" : "OFF");
+      Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::IR_DIST) ? "ON"
+                                                                     : "OFF");
 
-    } else if (charCmd == 'f') {
+    } else if (char_cmd == 'z') {
+      Ser.print("Test pattern ");
+      Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::TEST_PATTERN)
+                      ? "ON"
+                      : "OFF");
+
+    } else if (char_cmd == 'f') {
       ENA_print_FPS = !ENA_print_FPS;
 
-    } else if (charCmd == 'q') {
+    } else if (char_cmd == 'q') {
       ENA_auto_next_fx = !ENA_auto_next_fx;
-      Ser.print("Auto next effect ");
+      Ser.print("Auto-next effect ");
       Ser.println(ENA_auto_next_fx ? "ON" : "OFF");
 
-    } else if ((charCmd >= '0') && (charCmd <= '9')) {
-      set_fx(charCmd - '0');
+    } else if ((char_cmd >= '0') && (char_cmd <= '9')) {
+      fx_mgr.set_fx(char_cmd - '0');
 
-    } else if (charCmd == 'o') {
-      prev_fx();
+    } else if (char_cmd == 'o') {
+      fx_mgr.prev_fx();
 
-    } else if (charCmd == 'p') {
-      next_fx();
+    } else if (char_cmd == 'p') {
+      fx_mgr.next_fx();
 
-    } else if (charCmd == '[') {
-      segmntr1.prev_style();
-      print_style();
+    } else if (char_cmd == '[') {
+      fx_mgr.prev_style();
+      fx_mgr.print_style(&Ser);
 
-    } else if (charCmd == ']') {
-      segmntr1.next_style();
-      print_style();
+    } else if (char_cmd == ']') {
+      fx_mgr.next_style();
+      fx_mgr.print_style(&Ser);
 
-    } else if (charCmd == '-') {
+    } else if (char_cmd == '-') {
       brightness_idx = brightness_idx > 0 ? brightness_idx - 1 : 0;
       FastLED.setBrightness(brightness_table[brightness_idx]);
       Ser.print("Brightness ");
       Ser.println(brightness_table[brightness_idx]);
 
-    } else if ((charCmd == '+') || (charCmd == '=')) {
+    } else if ((char_cmd == '+') || (char_cmd == '=')) {
       brightness_idx = brightness_idx < sizeof(brightness_table) - 2
                            ? brightness_idx + 1
                            : sizeof(brightness_table) - 1;
@@ -404,60 +333,37 @@ void loop() {
       Ser.print("Brightness ");
       Ser.println(brightness_table[brightness_idx]);
 
-    } else if (charCmd == 'r') {
+    } else if (char_cmd == 'r') {
       NVIC_SystemReset();
-
-    } else if (charCmd == 'z') {
-      // DEBUG: testing sheit
-      fsm_fx.transitionTo(fx__TestPattern);
 
     } else {
       Ser.println("\nInfinity Mirror");
       Ser.println("---------------");
-      Ser.println("`  : Set output ON/OFF");
-      Ser.println("w  : Override all white ON/OFF\n");
-      Ser.println("i  : Override IR distance test ON/OFF\n");
-      Ser.println("q  : Toggle auto next FX ON/OFF");
+      Ser.println("`  : Output ON/OFF");
+      Ser.println("w  : Override FX: Toggle all leds white ON/OFF");
+      Ser.println("i  : Override FX: Toggle IR distance test ON/OFF");
+      Ser.println("z  : Override FX: Toggle test pattern ON/OFF");
+      Ser.println("r  : Reset hardware\n");
+
+      Ser.println("q  : Toggle auto-next FX ON/OFF");
       Ser.println("f  : Toggle FPS counter ON/OFF");
       Ser.println("-  : Decrease brightness");
       Ser.println("+  : Increase brightness\n");
+
       Ser.println("?  : Print current FX & style");
       Ser.println("0-9: Go to FX preset #");
       Ser.println("o  : Go to previous FX");
       Ser.println("p  : Go to next FX");
       Ser.println("[  : Go to previous style");
       Ser.println("]  : Go to next style\n");
-      Ser.println("r  : Reset hardware");
     }
   }
 
-  fsm_main.update(); // CRITICAL
+  // CRITICAL: Run the main Finite State Machine
+  fsm_main.update();
 
-  // Periodic updates
+  // Periodically read out the IR distance sensor
   EVERY_N_MILLISECONDS(25) {
     update_IR_dist();
-  }
-
-  // DEBUG: Working proof of concept for new mechanism `auto next fx`
-  if (ENA_auto_next_fx & fx_has_finished & !ENA_override) {
-    next_fx();
-  }
-
-  // Original approach
-  if (ENA_auto_next_fx & !ENA_override) {
-    if (fx_idx == 0) {
-      if (fsm_fx.timeInCurrentState() > 10000) {
-        next_fx();
-      }
-    } else {
-      if (fsm_fx.timeInCurrentState() > 20000) {
-        next_fx();
-      }
-      /*
-      EVERY_N_SECONDS(20) {
-        next_fx();
-      }
-      */
-    }
   }
 }
