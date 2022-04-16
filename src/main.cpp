@@ -95,7 +95,7 @@ void update_IR_dist() {
 }
 
 /*------------------------------------------------------------------------------
-  Finite State Machine: `fsm_fx` (child fsm)
+  Finite State Machine: `fsm_fx`
   Governs calculating the selected FastLED effect
 ------------------------------------------------------------------------------*/
 
