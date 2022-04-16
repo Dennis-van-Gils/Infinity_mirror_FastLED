@@ -25,7 +25,7 @@ namespace FLC {
   const EOrder COLOR_ORDER = BGR;
   const LEDColorCorrection COLOR_CORRECTION = TypicalSMD5050;
 
-  const uint16_t DELAY = round(1000 / 250); // 1000 / FPS, FPS = 250
+  const uint16_t MAX_REFRESH_RATE = 250; // FPS
 } // namespace FLC
 
 #endif

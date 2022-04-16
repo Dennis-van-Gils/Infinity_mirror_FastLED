@@ -13,7 +13,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-04-12-2021
+15-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -32,7 +32,7 @@ using namespace std;
 
 // External variables
 extern CRGB leds[FLC::N]; // Defined in `main.cpp`
-extern FSM fsm;           // Defined in `main.cpp`
+extern FSM fsm_fx;        // Defined in `main.cpp`
 
 CRGB leds_snapshot[FLC::N]; // Snapshot in time
 CRGB fx1[FLC::N];           // Will be populated up to length `s1`
@@ -48,6 +48,7 @@ static uint16_t s2; // Will hold `s2 = segmntr1.get_base_numel()` for `fx2`
 
 // Recurring animation variables
 // clang-format off
+bool fx_has_finished = false;
 static uint16_t idx1; // LED position index used for `fx1`
 static uint16_t idx2; // LED position index used for `fx2`
 static bool     fx_starting = false;
@@ -60,10 +61,8 @@ static uint8_t  fx_blend    = 127;
 // clang-format on
 
 // IR distance sensor
-extern uint8_t IR_dist;           // Defined in `main.cpp`
-extern float IR_dist_fract;       // Defined in `main.cpp`
-extern const uint8_t IR_MIN_DIST; // Defined in `main.cpp`
-extern const uint8_t IR_MAX_DIST; // Defined in `main.cpp`
+extern uint8_t IR_dist_cm;  // Defined in `main.cpp`
+extern float IR_dist_fract; // Defined in `main.cpp`
 
 /*------------------------------------------------------------------------------
 ------------------------------------------------------------------------------*/
@@ -225,7 +224,9 @@ void generate_HeartBeat() {
 }
 
 void enter__HeartBeat1() {
-  segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  fx_has_finished = false;
+  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
@@ -252,12 +253,15 @@ void update__HeartBeat1() {
   }
 }
 
+State fx__HeartBeat1("HeartBeat1", enter__HeartBeat1, update__HeartBeat1);
+
 /*------------------------------------------------------------------------------
   HeartBeat2
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void enter__HeartBeat2() {
+  fx_has_finished = false;
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
   segmntr2.set_style(StyleEnum::FULL_STRIP);
   create_leds_snapshot();
@@ -285,18 +289,17 @@ void update__HeartBeat2() {
   fx_intens = round(ECG::wave[ECG_idx] * 100);
 
   /*
-  // Make heart rate depend on IR_dist
+  // Make heart rate depend on IR_dist_cm
   // Is hard to keep beats to start at the start
   if (ECG_idx == 255){
-    heart_rate = floor(((uint16_t) IR_dist * 2) / 2); // Ensure even
+    heart_rate = floor(((uint16_t) IR_dist_cm * 2) / 2); // Ensure even
     fx_timebase = millis();
   }
   */
 
   /*
-  // Make hue depend on IR_dist
-  fx_hue =
-      200 - ((float)IR_dist - IR_MIN_DIST) / (IR_MAX_DIST - IR_MIN_DIST) * 200;
+  // Make hue depend on IR_dist_cm
+  fx_hue = 200 - IR_dist_fract *  200;
   */
 
   for (idx2 = 0; idx2 < s2; idx2++) {
@@ -320,8 +323,7 @@ void update__HeartBeat2() {
   }
 }
 
-State state__HeartBeat1("HeartBeat1", enter__HeartBeat1, update__HeartBeat1);
-State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
+State fx__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 
 /*------------------------------------------------------------------------------
   Rainbow
@@ -330,6 +332,7 @@ State state__HeartBeat2("HeartBeat2", enter__HeartBeat2, update__HeartBeat2);
 ------------------------------------------------------------------------------*/
 
 void enter__Rainbow() {
+  fx_has_finished = false;
   segmntr1.set_style(StyleEnum::FULL_STRIP);
   create_leds_snapshot();
   fx_starting = true;
@@ -367,7 +370,7 @@ void update__Rainbow() {
   }
 }
 
-State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
+State fx__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
 
 /*------------------------------------------------------------------------------
   Sinelon
@@ -376,6 +379,7 @@ State state__Rainbow("Rainbow", enter__Rainbow, update__Rainbow);
 ------------------------------------------------------------------------------*/
 
 void enter__Sinelon() {
+  fx_has_finished = false;
   segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
   create_leds_snapshot();
   clear_CRGBs(fx1);
@@ -398,7 +402,7 @@ void update__Sinelon() {
   }
 }
 
-State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
+State fx__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 
 /*------------------------------------------------------------------------------
   BPM
@@ -407,6 +411,7 @@ State state__Sinelon("Sinelon", enter__Sinelon, update__Sinelon);
 ------------------------------------------------------------------------------*/
 
 void enter__BPM() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
   segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   create_leds_snapshot();
@@ -439,7 +444,7 @@ void update__BPM() {
   }
 }
 
-State state__BPM("BPM", enter__BPM, update__BPM);
+State fx__BPM("BPM", enter__BPM, update__BPM);
 
 /*------------------------------------------------------------------------------
   Juggle
@@ -448,6 +453,7 @@ State state__BPM("BPM", enter__BPM, update__BPM);
 ------------------------------------------------------------------------------*/
 
 void enter__Juggle() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
 }
 
@@ -466,21 +472,7 @@ void update__Juggle() {
   }
 }
 
-State state__Juggle("Juggle", enter__Juggle, update__Juggle);
-
-/*------------------------------------------------------------------------------
-  FullWhite
-------------------------------------------------------------------------------*/
-
-void enter__FullWhite() {
-  // segmntr1.set_style(StyleEnum::FULL_STRIP);
-}
-
-void update__FullWhite() {
-  fill_solid(leds, FLC::N, CRGB::White);
-}
-
-State state__FullWhite("FullWhite", update__FullWhite);
+State fx__Juggle("Juggle", enter__Juggle, update__Juggle);
 
 /*------------------------------------------------------------------------------
   Stobe
@@ -495,6 +487,7 @@ namespace Strobe {
 } // namespace Strobe
 
 void enter__Strobe() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::FULL_STRIP);
 }
 
@@ -509,13 +502,14 @@ void update__Strobe() {
   }
 }
 
-State state__Strobe("Strobe", enter__Strobe, update__Strobe);
+State fx__Strobe("Strobe", enter__Strobe, update__Strobe);
 
 /*------------------------------------------------------------------------------
   Dennis
 ------------------------------------------------------------------------------*/
 
 void enter__Dennis() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
   // segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
@@ -544,13 +538,14 @@ void update__Dennis() {
   }
 }
 
-State state__Dennis("Dennis", enter__Dennis, update__Dennis);
+State fx__Dennis("Dennis", enter__Dennis, update__Dennis);
 
 /*------------------------------------------------------------------------------
   Try2
 ------------------------------------------------------------------------------*/
 
 void enter__Try2() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
   // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
   segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
@@ -597,7 +592,7 @@ void update__Try2() {
   }
 }
 
-State state__Try2("Try2", enter__Try2, update__Try2);
+State fx__Try2("Try2", enter__Try2, update__Try2);
 
 /*------------------------------------------------------------------------------
   RainbowBarf
@@ -607,6 +602,7 @@ State state__Try2("Try2", enter__Try2, update__Try2);
 ------------------------------------------------------------------------------*/
 
 void enter__RainbowBarf() {
+  fx_has_finished = false;
   segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
   create_leds_snapshot();
   fx_starting = true;
@@ -645,8 +641,7 @@ void update__RainbowBarf() {
   }
 }
 
-State state__RainbowBarf("RainbowBarf", enter__RainbowBarf,
-                         update__RainbowBarf);
+State fx__RainbowBarf("RainbowBarf", enter__RainbowBarf, update__RainbowBarf);
 
 /*------------------------------------------------------------------------------
   RainbowBarf2
@@ -661,6 +656,7 @@ void enter__RainbowBarf2() {
 }
 
 void update__RainbowBarf2() {
+  fx_has_finished = false;
   s1 = segmntr1.get_base_numel();
   uint8_t gauss8[FLC::N];   // Will hold the Gaussian profile
   static uint16_t wave_idx; // `triwave8`-index driving `sigma`
@@ -695,8 +691,8 @@ void update__RainbowBarf2() {
   }
 }
 
-State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
-                          update__RainbowBarf2);
+State fx__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
+                       update__RainbowBarf2);
 
 /*------------------------------------------------------------------------------
   RainbowHeartBeat
@@ -705,6 +701,7 @@ State state__RainbowBarf2("RainbowBarf2", enter__RainbowBarf2,
 ------------------------------------------------------------------------------*/
 
 void enter__RainbowHeartBeat() {
+  fx_has_finished = false;
   segmntr1.set_style(StyleEnum::FULL_STRIP);
   fx_timebase = millis();
 }
@@ -733,8 +730,8 @@ void update__RainbowHeartBeat() {
   }
 }
 
-State state__RainbowHeartBeat("RainbowHeartBeat", enter__RainbowHeartBeat,
-                              update__RainbowHeartBeat);
+State fx__RainbowHeartBeat("RainbowHeartBeat", enter__RainbowHeartBeat,
+                           update__RainbowHeartBeat);
 
 /*------------------------------------------------------------------------------
   RainbowSurf
@@ -745,6 +742,7 @@ State state__RainbowHeartBeat("RainbowHeartBeat", enter__RainbowHeartBeat,
 ------------------------------------------------------------------------------*/
 
 void enter__RainbowSurf() {
+  fx_has_finished = false;
   segmntr1.set_style(StyleEnum::FULL_STRIP);
   create_leds_snapshot();
   fx_starting = true;
@@ -787,10 +785,36 @@ void update__RainbowSurf() {
   EVERY_N_MILLIS(50) {
     fx_hue += 1;
   }
+
+  // DEBUG: Working proof of concept for new mechanism `auto next fx`
+  if (fsm_fx.timeInCurrentState() > 20000) {
+    fx_has_finished = true;
+  }
 }
 
-State state__RainbowSurf("RainbowSurf", enter__RainbowSurf,
-                         update__RainbowSurf);
+State fx__RainbowSurf("RainbowSurf", enter__RainbowSurf, update__RainbowSurf);
+
+/*------------------------------------------------------------------------------
+  AllBlack
+------------------------------------------------------------------------------*/
+
+void enter__AllBlack() {
+  fx_has_finished = false;
+  fill_solid(leds, FLC::N, CRGB::Black);
+}
+
+State fx__AllBlack("AllBlack", enter__AllBlack, 0);
+
+/*------------------------------------------------------------------------------
+  AllWhite
+------------------------------------------------------------------------------*/
+
+void enter__AllWhite() {
+  fx_has_finished = false;
+  fill_solid(leds, FLC::N, CRGB::White);
+}
+
+State fx__AllWhite("AllWhite", enter__AllWhite, 0);
 
 /*------------------------------------------------------------------------------
   TestPattern
@@ -801,6 +825,7 @@ State state__RainbowSurf("RainbowSurf", enter__RainbowSurf,
 ------------------------------------------------------------------------------*/
 
 void enter__TestPattern() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::COPIED_SIDES);
 }
 
@@ -814,27 +839,23 @@ void update__TestPattern() {
   segmntr1.process(leds, fx1);
 }
 
-State state__TestPattern("TestPattern", enter__TestPattern,
-                         update__TestPattern);
+State fx__TestPattern("TestPattern", enter__TestPattern, update__TestPattern);
 
 /*------------------------------------------------------------------------------
   IR distance test
-
-  First LED : Green
-  Last  LED : Red
-  In between: Alternating blue/yellow
 ------------------------------------------------------------------------------*/
 
-void enter__IRDistTest() {
+void enter__IRDist() {
+  fx_has_finished = false;
   // segmntr1.set_style(StyleEnum::COPIED_SIDES);
 }
 
-void update__IRDistTest() {
+void update__IRDist() {
   CRGB color =
       ColorFromPalette(RainbowColors_p, (uint8_t)(IR_dist_fract * 255));
   fill_solid(leds, FLC::N, color);
 }
 
-State state__IRDistTest("IRDistTest", enter__IRDistTest, update__IRDistTest);
+State fx__IRDist("IRDist", enter__IRDist, update__IRDist);
 
 #endif
