@@ -1,9 +1,6 @@
-# Switch library
-
 ## About
-Arduino library for debouncing switches and buttons. Supports detecting longPress and doubleClick. Supports defining callback functions.
-
-Available at: https://github.com/avandalen/avdweb_Switch
+Arduino switch and button library with Short/Long Press, Double Click and Beep.
+Supports defining callback functions.
 
 #### General features of the Switch library
 - Performs not just de-bouncing, but also de-glitching against EMC pulses.
@@ -14,7 +11,7 @@ Available at: https://github.com/avandalen/avdweb_Switch
 ## Introduction
 Switches and push buttons need debouncing. It is straightforward to do this with software, using this library.
 
-For a complete description see: http://www.avdweb.nl/arduino/hardware-interfacing/simple-switch-debouncer.html
+For a complete description see: https://www.avdweb.nl/arduino/hardware-interfacing/simple-switch-debouncer
 
 ## Using the Switch library
 

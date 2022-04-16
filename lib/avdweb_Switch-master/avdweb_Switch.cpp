@@ -19,6 +19,9 @@ HISTORY:
 1.2.0-rc 28-07-2018 added singleclick. Reorganize, keeping variables for each event in one function
 1.2.0    29-09-2018 released
 1.2.1    30-11-2018 bugfix. Initialize time variables in the constructor. Fixes false event if first call to poll was delayed
+1.2.2    18-10-2019 beep when a switch is pressed with using a setBeepAllCallback function
+1.2.3    03-04-2020 made public: deglitchPeriod, debouncePeriod, longPressPeriod, doubleClickPeriod
+1.2.4    14-07-2021 "static switchCallback_t _beepAllCallback = nullptr;" gives error with SAMD21, removed "= nullptr;"
 
 ..........................................DEGLITCHING..............................
 
@@ -110,8 +113,11 @@ HISTORY:
 #include "Arduino.h"
 #include "avdweb_Switch.h"
 
-Switch::Switch(byte _pin, byte PinMode, bool polarity, int debouncePeriod, int longPressPeriod, int doubleClickPeriod, int deglitchPeriod):
-pin(_pin), polarity(polarity), deglitchPeriod(deglitchPeriod), debouncePeriod(debouncePeriod), longPressPeriod(longPressPeriod), doubleClickPeriod(doubleClickPeriod)
+switchCallback_t Switch::_beepAllCallback = nullptr; // definition static function pointer with typedef
+void* Switch::_beepAllCallbackParam = nullptr;
+
+Switch::Switch(byte _pin, byte PinMode, bool polarity, unsigned long debouncePeriod, unsigned long longPressPeriod, unsigned long doubleClickPeriod, unsigned long deglitchPeriod):
+deglitchPeriod(deglitchPeriod), debouncePeriod(debouncePeriod), longPressPeriod(longPressPeriod), doubleClickPeriod(doubleClickPeriod), pin(_pin), polarity(polarity)
 { pinMode(pin, PinMode);
   switchedTime = millis();
   debounced = digitalRead(pin);
@@ -134,7 +140,8 @@ bool Switch::process()
   if(switched())
   { switchedTime = ms; //stores last times for future rounds
     if(pushed())
-    { pushedTime = ms;
+    { if(_beepAllCallback) _beepAllCallback(_beepAllCallbackParam);
+      pushedTime = ms;
     } else { releasedTime = ms;
     }
   }
@@ -143,8 +150,7 @@ bool Switch::process()
 }
 
 void inline Switch::deglitch()
-{
-  if(input == lastInput) equal = 1;
+{ if(input == lastInput) equal = 1;
   else
   { equal = 0;
     deglitchTime = ms;
@@ -157,8 +163,7 @@ void inline Switch::deglitch()
 }
 
 void inline Switch::debounce()
-{
-  _switched = 0;
+{ _switched = 0;
   if((deglitched != debounced) && ((ms - switchedTime) > debouncePeriod))
   { debounced = deglitched;
     _switched = 1;
@@ -221,8 +226,7 @@ bool Switch::singleClick()
 }
 
 void Switch::triggerCallbacks()
-{
-  if(_pushedCallback && pushed())
+{ if(_pushedCallback && pushed())
   { _pushedCallback(_pushedCallbackParam);
   }
     else if(_releasedCallback && released())
@@ -243,31 +247,32 @@ void Switch::triggerCallbacks()
 }
 
 void Switch::setPushedCallback(switchCallback_t cb, void* param)
-{ /// Store the "pushed" callback function
-  _pushedCallback = cb;
+{ _pushedCallback = cb; // Store the "pushed" callback function
   _pushedCallbackParam = param;
 }
 
 void Switch::setReleasedCallback(switchCallback_t cb, void* param)
-{ /// Store the "released" callback function
-  _releasedCallback = cb;
+{ _releasedCallback = cb; // Store the "released" callback function
   _releasedCallbackParam = param;
 }
 
 void Switch::setLongPressCallback(switchCallback_t cb, void* param)
-{ /// Store the "long press" callback function
-  _longPressCallback = cb;
+{ _longPressCallback = cb; // Store the "long press" callback function
   _longPressCallbackParam = param;
 }
 
 void Switch::setDoubleClickCallback(switchCallback_t cb, void* param)
-{ /// Store the "double click" callback function
-  _doubleClickCallback = cb;
+{ _doubleClickCallback = cb; // Store the "double click" callback function
   _doubleClickCallbackParam = param;
 }
 
 void Switch::setSingleClickCallback(switchCallback_t cb, void* param)
-{ /// Store the "double click" callback function
-  _singleClickCallback = cb;
+{ _singleClickCallback = cb; // Store the "double click" callback function
   _singleClickCallbackParam = param;
 }
+
+//void Switch::setBeepAllCallback(void(*cb)(void*), void* param) static function pointer without typedef
+void Switch::setBeepAllCallback(switchCallback_t cb, void* param) // with static function pointer without typedef
+{ _beepAllCallback = cb; // Store the "beep" callback function
+  _beepAllCallbackParam = param;
+} 
