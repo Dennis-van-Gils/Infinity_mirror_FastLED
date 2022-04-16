@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-15-04-2022
+16-04-2022
 */
 
 #include <Arduino.h>
@@ -12,16 +12,16 @@ Dennis van Gils
 #include "RunningAverage.h"
 #include "avdweb_Switch.h"
 
-#include "DvG_FastLED_StripSegmenter.h"
 #include "DvG_FastLED_config.h"
 #include "DvG_FastLED_effects.h"
 
 FASTLED_USING_NAMESPACE
 
-// LED data of the full strip to be send out
-CRGB leds[FLC::N]; // EXTERNALLY modified by `DvG_FastLED_effects.h`
-
-extern FastLED_StripSegmenter segmntr1; // Defined in `DvG_FastLED_effects.h`
+/* NOT NEEDED TO DECLARE EXTERN IN `main.cpp`. Using `#include` is sufficient.
+// External variables defined in `DvG_FastLED_effects.h`
+extern CRGB leds[FLC::N];
+extern FastLED_StripSegmenter segmntr1;
+*/
 
 // Master switches
 static bool ENA_override_AllBlack = false; // Override: Turn off all leds?
@@ -57,8 +57,8 @@ Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
 */
 // clang-format off
 #define A2_BITS 10       // Calibration has been performed at 10 bits ADC only
-uint8_t IR_dist_cm = 0;  // [cm]  // EXTERNALLY read by `DvG_FastLED_effects.h`
-float IR_dist_fract = 0; // [0-1] // EXTERNALLY read by `DvG_FastLED_effects.h`
+uint8_t IR_dist_cm = 0;  // IR distance in [cm]
+float IR_dist_fract = 0; // IR distance as fraction of the full scale [0-1]
 const uint8_t IR_DIST_MIN = 16;   // [cm]
 const uint8_t IR_DIST_MAX = 150;  // [cm]
 const float   IR_CALIB_A = 1512.89;
@@ -103,9 +103,10 @@ bool fx_has_changed = true;
 uint16_t fx_idx = 0;
 
 std::vector<State> fx_list = { // fx__TestPattern,
-    fx__HeartBeat1, fx__RainbowSurf, fx__RainbowBarf, fx__Dennis,
-    fx__HeartBeat2, fx__Rainbow,     fx__Sinelon}; // ,fx__RainbowBarf2};
+    fx__HeartBeat,   fx__RainbowSurf, fx__RainbowBarf, fx__Dennis,
+    fx__HeartBeat_2, fx__Rainbow,     fx__Sinelon}; // ,fx__RainbowBarf_2};
 
+// Finite State Machine governing the FastLED effect calculation
 FSM fsm_fx = FSM(fx_list[fx_idx]);
 
 void set_fx(uint16_t idx) {
@@ -169,15 +170,15 @@ void print_style() {
 ------------------------------------------------------------------------------*/
 
 // Declarations
-void enter__ShowMenu();
-void update__ShowMenu();
+void entr__ShowMenu();
+void upd__ShowMenu();
 void exit__ShowMenu();
-State show__Menu("ShowMenu", enter__ShowMenu, update__ShowMenu, exit__ShowMenu);
+State show__Menu("ShowMenu", entr__ShowMenu, upd__ShowMenu, exit__ShowMenu);
 
-void update__ShowFastLED();
-State show__FastLED("ShowFastLED", update__ShowFastLED);
+void upd__ShowFastLED();
+State show__FastLED("ShowFastLED", upd__ShowFastLED);
 
-// Definitions
+// Finite State Machine governing showing the FastLED effect or the menu
 FSM fsm_main = FSM(show__FastLED);
 
 void flash_menu(const struct CRGB &color) {
@@ -193,11 +194,11 @@ void flash_menu(const struct CRGB &color) {
   FastLED.delay(200);
 }
 
-void enter__ShowMenu() {
+void entr__ShowMenu() {
   flash_menu(CRGB::Red);
 }
 
-void update__ShowMenu() {
+void upd__ShowMenu() {
   // In progress: Shows dummy menu for the moment
   static uint8_t leds_offset = 0;
 
@@ -225,7 +226,7 @@ void exit__ShowMenu() {
   flash_menu(CRGB::Green);
 }
 
-void update__ShowFastLED() {
+void upd__ShowFastLED() {
   fsm_fx.update(); // CRITICAL, calculates current LED effect
 
   if (fx_has_changed) {
@@ -408,9 +409,7 @@ void loop() {
 
     } else if (charCmd == 'z') {
       // DEBUG: testing sheit
-      FastLED.showColor(CRGB::Blue);
-      FastLED.show();
-      delay(1000);
+      fsm_fx.transitionTo(fx__TestPattern);
 
     } else {
       Ser.println("\nInfinity Mirror");
