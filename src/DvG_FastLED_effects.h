@@ -67,6 +67,7 @@ static uint8_t  fx_blend    = 127;
 uint32_t fx_duration = 0; // [ms]
 StyleEnum fx_style = StyleEnum::FULL_STRIP;
 
+// To be called inside of every `entr__...` function
 static void init_fx() {
   segmntr1.set_style(fx_style);
   fx_has_finished = false;
@@ -74,6 +75,7 @@ static void init_fx() {
   fx_t0 = millis();
 }
 
+// To be called at the end of an `upd__...` function
 static void duration_check() {
   if (fx_duration) { // 0 indicates no maximum duration is set
     if (millis() - fx_t0 >= fx_duration) {
