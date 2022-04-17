@@ -41,6 +41,7 @@ Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
   FastLED effect
 ------------------------------------------------------------------------------*/
 
+// Initialize with a presets list of FastLED effects to show consecutively
 // clang-format off
 FastLED_EffectManager fx_mgr = FastLED_EffectManager(
   {
@@ -117,6 +118,10 @@ State show__FastLED("ShowFastLED", upd__ShowFastLED);
 // Finite State Machine governing showing the FastLED effect or the menu
 FSM fsm_main = FSM(show__FastLED);
 
+/*------------------------------------------------------------------------------
+  Show Menu machinery
+------------------------------------------------------------------------------*/
+
 void flash_menu(const struct CRGB &color) {
   fill_solid(leds, FLC::N, CRGB::Black);
   FastLED.delay(200);
@@ -164,6 +169,10 @@ void exit__ShowMenu() {
   flash_menu(CRGB::Green);
 }
 
+/*------------------------------------------------------------------------------
+  Show FastLED effect machinery
+------------------------------------------------------------------------------*/
+
 void upd__ShowFastLED() {
   // CRITICAL: Calculate the current FastLED effect
   fx_mgr.update();
@@ -178,7 +187,7 @@ void upd__ShowFastLED() {
   // out the LED data - at least once during the delay.
   FastLED.delay(2);
 
-  // FPS counter
+  // Print FPS counter
   EVERY_N_MILLISECONDS(1000) {
     if (ENA_print_FPS) {
       Ser.println(FastLED.getFPS());

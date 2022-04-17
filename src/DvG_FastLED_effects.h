@@ -77,7 +77,8 @@ static void init_fx() {
 
 // To be called at the end of an `upd__...` function
 static void duration_check() {
-  if (fx_duration) { // 0 indicates no maximum duration is set
+  if (fx_duration) { // 0 indicates infinite duration or until effect is done
+                     // otherwise
     if (millis() - fx_t0 >= fx_duration) {
       fx_has_finished = true;
     }

@@ -43,7 +43,8 @@ struct FX_preset {
   // Members and defaults
   State fx{fx__AllBlack};
   StyleEnum style{StyleEnum::FULL_STRIP};
-  uint32_t duration{0}; // 0 indicates infinite duration or until effect is done
+  uint32_t duration{
+      0}; // 0 indicates infinite duration or until effect is done otherwise
 };
 
 /*------------------------------------------------------------------------------
