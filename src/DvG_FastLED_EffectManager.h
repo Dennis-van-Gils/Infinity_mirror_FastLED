@@ -126,18 +126,23 @@ public:
     switch (fx_override) {
       case FxOverrideEnum::ALL_BLACK:
         _fsm_fx.transitionTo(fx__AllBlack);
+        fx_duration = 0;
         break;
       case FxOverrideEnum::ALL_WHITE:
         _fsm_fx.transitionTo(fx__AllWhite);
+        fx_duration = 0;
         break;
       case FxOverrideEnum::IR_DIST:
         _fsm_fx.transitionTo(fx__IRDist);
+        fx_duration = 0;
         break;
       case FxOverrideEnum::TEST_PATTERN:
         _fsm_fx.transitionTo(fx__TestPattern);
+        fx_duration = 0;
         break;
       case FxOverrideEnum::NONE:
         set_fx(_fx_idx);
+        fx_duration = _fx_list[_fx_idx].duration;
         break;
     }
     _fx_has_changed = true;

@@ -108,7 +108,7 @@ void entr__AllBlack() {
   fill_solid(leds, FLC::N, CRGB::Black);
 }
 
-State fx__AllBlack("AllBlack", entr__AllBlack, 0);
+State fx__AllBlack("AllBlack", entr__AllBlack,  duration_check);
 
 /*------------------------------------------------------------------------------
   AllWhite
@@ -119,7 +119,7 @@ void entr__AllWhite() {
   fill_solid(leds, FLC::N, CRGB::White);
 }
 
-State fx__AllWhite("AllWhite", entr__AllWhite, 0);
+State fx__AllWhite("AllWhite", entr__AllWhite, duration_check);
 
 /*------------------------------------------------------------------------------
   TestPattern
@@ -139,6 +139,8 @@ void upd__TestPattern() {
   fx1[0] = CRGB::Green;
   fx1[s1 - 1] = CRGB::Red;
   segmntr1.process(leds, fx1);
+
+  duration_check();
 }
 
 State fx__TestPattern("TestPattern", entr__TestPattern, upd__TestPattern);
@@ -155,6 +157,8 @@ void upd__IRDist() {
   CRGB color =
       ColorFromPalette(RainbowColors_p, (uint8_t)(IR_dist_fract * 255));
   fill_solid(leds, FLC::N, color);
+
+  duration_check();
 }
 
 State fx__IRDist("IRDist", entr__IRDist, upd__IRDist);
