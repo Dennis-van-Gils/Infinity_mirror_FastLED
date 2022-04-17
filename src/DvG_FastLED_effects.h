@@ -50,9 +50,10 @@ static uint16_t s2; // Will hold `s2 = segmntr1.get_base_numel()` for `fx2`
 
 // Recurring animation variables
 // clang-format off
-bool fx_has_finished = false;
-static uint16_t idx1; // LED position index used for `fx1`
-static uint16_t idx2; // LED position index used for `fx2`
+bool fx_has_finished = false;     // Checked by `DvG_FastLED_EffectManager.h`
+static bool fx_about_to_finish = false;
+static uint16_t idx1;             // LED position index used for `fx1`
+static uint16_t idx2;             // LED position index used for `fx2`
 static bool     fx_starting = false;
 static uint32_t fx_t0       = 0;  // `millis()` value at start of effect
 static uint32_t fx_timebase = 0;  // 'millis()` value at arbitrary moment
@@ -71,17 +72,22 @@ StyleEnum fx_style = StyleEnum::FULL_STRIP;
 static void init_fx() {
   segmntr1.set_style(fx_style);
   fx_has_finished = false;
+  fx_about_to_finish = false;
   fx_starting = true;
   fx_t0 = millis();
 }
 
 // To be called at the end of an `upd__...` function
 static void duration_check() {
-  if (fx_duration) { // 0 indicates infinite duration or until effect is done
-                     // otherwise
+  if (fx_duration) {
+    // fx_duration > 0 indicates we wait for the set duration before we finish
     if (millis() - fx_t0 >= fx_duration) {
       fx_has_finished = true;
     }
+  } else {
+    // fx_duration == 0 indicates infinite duration or until effect is done
+    // otherwise
+    fx_has_finished = fx_about_to_finish;
   }
 }
 
@@ -100,48 +106,66 @@ CRGBPalette16 custom_palette_1 = {
 };
 
 /*------------------------------------------------------------------------------
-  AllBlack
+  FadeToBlack
 
-  Fades to black (piecewise, gets slower when dimmer)
+  Fades to black piecewise, getting slower near the dim end
 ------------------------------------------------------------------------------*/
 
-void entr__AllBlack() {
+void entr__FadeToBlack() {
   init_fx();
-  create_leds_snapshot();
 }
 
-void upd__AllBlack() {
+void upd__FadeToBlack() {
   if (!fx_has_finished) {
-    uint16_t avg_luma = 0;
-
-    copy_strip(leds_snapshot, leds);
-
     EVERY_N_MILLIS(10) {
-      for (idx1 = 0; idx1 < FLC::N; idx1++) {
-        avg_luma += leds_snapshot[0].getLuma();
-      }
-      avg_luma = avg_luma / FLC::N;
-      fadeToBlackBy(leds_snapshot, FLC::N, avg_luma > 60 ? 5 : 1);
+      fadeToBlackBy(leds, FLC::N, get_avg_luma(leds, FLC::N) > 60 ? 5 : 1);
+      fx_about_to_finish = is_all_black(leds, FLC::N);
     }
-
-    if (is_all_black(leds_snapshot, FLC::N)) {
-      fx_has_finished = true;
-    }
+    duration_check();
   }
 }
 
-State fx__AllBlack("AllBlack", entr__AllBlack, upd__AllBlack);
+State fx__FadeToBlack("FadeToBlack", entr__FadeToBlack, upd__FadeToBlack);
 
 /*------------------------------------------------------------------------------
-  AllWhite
+  FadeToWhite
 ------------------------------------------------------------------------------*/
 
-void entr__AllWhite() {
+void entr__FadeToWhite() {
   init_fx();
-  fill_solid(leds, FLC::N, CRGB::White);
 }
 
-State fx__AllWhite("AllWhite", entr__AllWhite, duration_check);
+void upd__FadeToWhite() {
+  if (!fx_has_finished) {
+    EVERY_N_MILLIS(10) {
+      fadeTowardColor(leds, FLC::N, CRGB::White, 5);
+      fx_about_to_finish = is_all_of_color(leds, FLC::N, CRGB::White);
+    }
+    duration_check();
+  }
+}
+
+State fx__FadeToWhite("FadeToWhite", entr__FadeToWhite, upd__FadeToWhite);
+
+/*------------------------------------------------------------------------------
+  FadeToRed
+------------------------------------------------------------------------------*/
+
+void entr__FadeToRed() {
+  init_fx();
+}
+
+void upd__FadeToRed() {
+  if (!fx_has_finished) {
+    EVERY_N_MILLIS(10) {
+      fadeTowardColor(leds, FLC::N, CRGB::Red, 5);
+      fx_about_to_finish = is_all_of_color(leds, FLC::N, CRGB::Red);
+    }
+    duration_check();
+  }
+}
+
+State fx__FadeToRed("FadeToRed", entr__FadeToRed, upd__FadeToRed);
 
 /*------------------------------------------------------------------------------
   TestPattern
@@ -190,7 +214,7 @@ State fx__IRDist("IRDist", entr__IRDist, upd__IRDist);
   - StyleEnum::HALFWAY_PERIO_SPLIT_N2
   - StyleEnum::BI_DIR_SIDE2SIDE
 
-  A beating heart, beating brighter when time goes by.
+  A beating heart, rainbow style
   You must call `generate_HeartBeat()` once in `setup()`.
 
   Author: Dennis van Gils
@@ -401,7 +425,7 @@ void upd__Rainbow() {
     fadeToBlackBy(leds_snapshot, FLC::N, 5);
   }
   EVERY_N_MILLIS(50) {
-    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 15.) + 1;
+    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 10.) + 1;
     fx_hue = fx_hue + fx_hue_step;
     wave_idx++;
   }

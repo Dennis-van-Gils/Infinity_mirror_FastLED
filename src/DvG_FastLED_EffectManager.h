@@ -41,7 +41,7 @@ struct FX_preset {
       : fx{_fx}, style{_style}, duration{_duration} {}
 
   // Members and defaults
-  State fx{fx__AllBlack};
+  State fx{fx__FadeToBlack};
   StyleEnum style{StyleEnum::FULL_STRIP};
   uint32_t duration{
       0}; // 0 indicates infinite duration or until effect is done otherwise
@@ -61,7 +61,7 @@ private:
   FxOverrideEnum _fx_override = FxOverrideEnum::NONE;
 
   // Finite State Machine governing the FastLED effect calculation
-  FSM _fsm_fx = FSM(fx__AllBlack);
+  FSM _fsm_fx = FSM(fx__FadeToBlack);
 
 public:
   FastLED_EffectManager(std::vector<FX_preset> fx_list) {
@@ -125,11 +125,11 @@ public:
     _fx_override = fx_override;
     switch (fx_override) {
       case FxOverrideEnum::ALL_BLACK:
-        _fsm_fx.transitionTo(fx__AllBlack);
+        _fsm_fx.transitionTo(fx__FadeToBlack);
         fx_duration = 0;
         break;
       case FxOverrideEnum::ALL_WHITE:
-        _fsm_fx.transitionTo(fx__AllWhite);
+        _fsm_fx.transitionTo(fx__FadeToWhite);
         fx_duration = 0;
         break;
       case FxOverrideEnum::IR_DIST:

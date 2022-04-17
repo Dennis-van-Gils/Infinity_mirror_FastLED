@@ -79,6 +79,22 @@ bool is_all_black(CRGB *in, uint32_t numel) {
   return true;
 }
 
+bool is_all_of_color(CRGB *in, uint32_t numel, const CRGB &target) {
+  bool success = true;
+  for (uint16_t idx = 0; idx < numel; idx++) {
+    success &= (in[idx] == target);
+  }
+  return success;
+}
+
+uint8_t get_avg_luma(CRGB *in, uint32_t numel) {
+  uint32_t avg_luma = 0;
+  for (uint16_t idx = 0; idx < numel; idx++) {
+    avg_luma += in[idx].getLuma();
+  }
+  return avg_luma / FLC::N;
+}
+
 /*------------------------------------------------------------------------------
   Guassian profile functions
 ------------------------------------------------------------------------------*/
@@ -125,6 +141,55 @@ void profile_gauss8strip(uint8_t gauss8[FLC::N], float mu, float sigma) {
   // Rotate gaussian array to the correct mu
   std::rotate(gauss8, gauss8 + (FLC::N * 3 / 2 - mu_rounded) % FLC::N,
               gauss8 + FLC::N);
+}
+
+/*------------------------------------------------------------------------------
+  fadeTowardColor
+  Source: https://gist.github.com/kriegsman/d0a5ed3c8f38c64adcb4837dafb6e690
+
+  - Fade one RGB color toward a target RGB color.
+  - Fade a whole array of pixels toward a given color.
+
+  Both of these functions _modify_ the existing color, in place.
+  All fades are done in RGB color space.
+
+  Mark Kriegsman
+  December 2016
+------------------------------------------------------------------------------*/
+
+// Helper function that blends one uint8_t toward another by a given amount
+void nblendU8TowardU8(uint8_t &cur, const uint8_t target, uint8_t amount) {
+  if (cur == target)
+    return;
+
+  if (cur < target) {
+    uint8_t delta = target - cur;
+    delta = scale8_video(delta, amount);
+    cur += delta;
+  } else {
+    uint8_t delta = cur - target;
+    delta = scale8_video(delta, amount);
+    cur -= delta;
+  }
+}
+
+// Blend one CRGB color toward another CRGB color by a given amount.
+// Blending is linear, and done in the RGB color space.
+// This function modifies 'cur' in place.
+CRGB fadeTowardColor(CRGB &cur, const CRGB &target, uint8_t amount) {
+  nblendU8TowardU8(cur.red, target.red, amount);
+  nblendU8TowardU8(cur.green, target.green, amount);
+  nblendU8TowardU8(cur.blue, target.blue, amount);
+  return cur;
+}
+
+// Fade an entire array of CRGBs toward a given background color by a given
+// amount This function modifies the pixel array in place.
+void fadeTowardColor(CRGB *L, uint16_t N, const CRGB &bgColor,
+                     uint8_t fadeAmount) {
+  for (uint16_t i = 0; i < N; i++) {
+    fadeTowardColor(L[i], bgColor, fadeAmount);
+  }
 }
 
 #endif
