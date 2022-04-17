@@ -198,7 +198,7 @@ void upd__ShowFastLED() {
     fsm_main.transitionTo(show__Menu);
   }
 
-  // DEBUG: Working proof of concept for new mechanism auto-next fx`
+  // Check for auto-advancing to the next FastLED effect in the presets list
   if (ENA_auto_next_fx & fx_has_finished & !fx_mgr.fx_override()) {
     fx_mgr.next_fx();
   }
