@@ -101,14 +101,36 @@ CRGBPalette16 custom_palette_1 = {
 
 /*------------------------------------------------------------------------------
   AllBlack
+
+  Fades to black (piecewise, gets slower when dimmer)
 ------------------------------------------------------------------------------*/
 
 void entr__AllBlack() {
   init_fx();
-  fill_solid(leds, FLC::N, CRGB::Black);
+  create_leds_snapshot();
 }
 
-State fx__AllBlack("AllBlack", entr__AllBlack, duration_check);
+void upd__AllBlack() {
+  if (!fx_has_finished) {
+    uint16_t avg_luma = 0;
+
+    copy_strip(leds_snapshot, leds);
+
+    EVERY_N_MILLIS(10) {
+      for (idx1 = 0; idx1 < FLC::N; idx1++) {
+        avg_luma += leds_snapshot[0].getLuma();
+      }
+      avg_luma = avg_luma / FLC::N;
+      fadeToBlackBy(leds_snapshot, FLC::N, avg_luma > 60 ? 5 : 1);
+    }
+
+    if (is_all_black(leds_snapshot, FLC::N)) {
+      fx_has_finished = true;
+    }
+  }
+}
+
+State fx__AllBlack("AllBlack", entr__AllBlack, upd__AllBlack);
 
 /*------------------------------------------------------------------------------
   AllWhite
@@ -191,7 +213,6 @@ void generate_HeartBeat() {
 
 void entr__HeartBeatAwaken() {
   init_fx();
-  create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
   fx_hue = 127;
@@ -210,8 +231,7 @@ void upd__HeartBeatAwaken() {
   idx1 = round((1 - ECG_ampl) * (s1 - 1));
   fx1[idx1] += CHSV(HUE_RED, 0, uint8_t(ECG::wave[ECG_idx] * 200));
   populate_fx1_strip();
-
-  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
+  copy_strip(fx1_strip, leds);
 
   // Now shift pure white to color
   for (idx1 = 0; idx1 < FLC::N; idx1++) {
@@ -219,7 +239,6 @@ void upd__HeartBeatAwaken() {
   }
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(leds_snapshot, FLC::N, 5);
     fadeToBlackBy(fx1, s1, 10);
   }
 
