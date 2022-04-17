@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-16-04-2022
+17-04-2022
 */
 
 #include <Arduino.h>
@@ -44,14 +44,14 @@ Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
 // clang-format off
 FastLED_EffectManager fx_mgr = FastLED_EffectManager(
   {
-    fx__HeartBeat,
-    fx__RainbowSurf,
-    fx__RainbowBarf,
-    fx__Dennis,
-    fx__HeartBeat_2,
-    fx__Rainbow,
-    fx__Sinelon,
-    // fx__RainbowBarf_2,
+    //       (FastLED effect , strip segmentation style         , duration [ms])
+    FX_preset(fx__HeartBeat  , StyleEnum::HALFWAY_PERIO_SPLIT_N2, 9800),
+    FX_preset(fx__RainbowSurf, StyleEnum::FULL_STRIP            , 4000),
+    FX_preset(fx__RainbowBarf, StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
+    FX_preset(fx__Dennis     , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
+    FX_preset(fx__HeartBeat_2, StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
+    FX_preset(fx__Rainbow    , StyleEnum::FULL_STRIP            , 13000),
+    FX_preset(fx__Sinelon    , StyleEnum::BI_DIR_SIDE2SIDE      , 13000),
     });
 // clang-format on
 
@@ -201,19 +201,6 @@ void upd__ShowFastLED() {
   // DEBUG: Working proof of concept for new mechanism auto-next fx`
   if (ENA_auto_next_fx & fx_has_finished & !fx_mgr.fx_override()) {
     fx_mgr.next_fx();
-  }
-
-  // Original approach
-  if (ENA_auto_next_fx & !fx_mgr.fx_override()) {
-    if (fx_mgr.fx_idx() == 0) {
-      if (fx_mgr.time_in_current_fx() > 9800) {
-        fx_mgr.next_fx();
-      }
-    } else {
-      if (fx_mgr.time_in_current_fx() > 13000) {
-        fx_mgr.next_fx();
-      }
-    }
   }
 }
 

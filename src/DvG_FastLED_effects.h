@@ -13,7 +13,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-16-04-2022
+17-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -63,6 +63,25 @@ static uint8_t  fx_blend    = 127;
 // static uint8_t  fx_blur     = 0;
 // clang-format on
 
+// Globally set by `DvG_FastLED_EffectManager.h`
+uint32_t fx_duration = 0; // [ms]
+StyleEnum fx_style = StyleEnum::FULL_STRIP;
+
+static void init_fx() {
+  segmntr1.set_style(fx_style);
+  fx_has_finished = false;
+  fx_starting = true;
+  fx_t0 = millis();
+}
+
+static void duration_check() {
+  if (fx_duration) { // 0 indicates no maximum duration is set
+    if (millis() - fx_t0 >= fx_duration) {
+      fx_has_finished = true;
+    }
+  }
+}
+
 /*------------------------------------------------------------------------------
   https://coolors.co/98ce00-16e0bd-78c3fb-89a6fb-98838f
 ------------------------------------------------------------------------------*/
@@ -82,7 +101,7 @@ CRGBPalette16 custom_palette_1 = {
 ------------------------------------------------------------------------------*/
 
 void entr__AllBlack() {
-  fx_has_finished = false;
+  init_fx();
   fill_solid(leds, FLC::N, CRGB::Black);
 }
 
@@ -93,7 +112,7 @@ State fx__AllBlack("AllBlack", entr__AllBlack, 0);
 ------------------------------------------------------------------------------*/
 
 void entr__AllWhite() {
-  fx_has_finished = false;
+  init_fx();
   fill_solid(leds, FLC::N, CRGB::White);
 }
 
@@ -102,14 +121,11 @@ State fx__AllWhite("AllWhite", entr__AllWhite, 0);
 /*------------------------------------------------------------------------------
   TestPattern
 
-  First LED : Green
-  Last  LED : Red
-  In between: Alternating blue/yellow
+  [green - ... blue / yellow / blue / yellow ... - red]
 ------------------------------------------------------------------------------*/
 
 void entr__TestPattern() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::COPIED_SIDES);
+  init_fx();
 }
 
 void upd__TestPattern() {
@@ -129,7 +145,7 @@ State fx__TestPattern("TestPattern", entr__TestPattern, upd__TestPattern);
 ------------------------------------------------------------------------------*/
 
 void entr__IRDist() {
-  fx_has_finished = false;
+  init_fx();
 }
 
 void upd__IRDist() {
@@ -142,8 +158,11 @@ State fx__IRDist("IRDist", entr__IRDist, upd__IRDist);
 
 /*------------------------------------------------------------------------------
   HeartBeat
+  - StyleEnum::HALFWAY_PERIO_SPLIT_N2
+  - StyleEnum::BI_DIR_SIDE2SIDE
 
   A beating heart. You must call `generate_HeartBeat()` once in `setup()`.
+
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 #define ECG_N_SMP 256 // 256 so you can use `beat8()` for timing
@@ -163,9 +182,7 @@ void generate_HeartBeat() {
 }
 
 void entr__HeartBeat() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-  segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+  init_fx();
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
@@ -190,18 +207,21 @@ void upd__HeartBeat() {
     fadeToBlackBy(leds_snapshot, FLC::N, 5);
     fadeToBlackBy(fx1, s1, 10);
   }
+
+  duration_check();
 }
 
 State fx__HeartBeat("HeartBeat", entr__HeartBeat, upd__HeartBeat);
 
 /*------------------------------------------------------------------------------
   HeartBeat_2
+  - StyleEnum::PERIO_OPP_CORNERS_N2
+
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void entr__HeartBeat_2() {
-  fx_has_finished = false;
-  segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
+  init_fx();
   segmntr2.set_style(StyleEnum::FULL_STRIP);
   create_leds_snapshot();
   clear_CRGBs(fx1);
@@ -260,21 +280,22 @@ void upd__HeartBeat_2() {
     fadeToBlackBy(fx1, s1, 20);
     fadeToBlackBy(fx2, s2, 10);
   }
+
+  duration_check();
 }
 
 State fx__HeartBeat_2("HeartBeat_2", entr__HeartBeat_2, upd__HeartBeat_2);
 
 /*------------------------------------------------------------------------------
   Rainbow
+  - StyleEnum::FULL_STRIP
 
   FastLED's built-in rainbow generator
 ------------------------------------------------------------------------------*/
 
 void entr__Rainbow() {
-  fx_has_finished = false;
-  segmntr1.set_style(StyleEnum::FULL_STRIP);
+  init_fx();
   create_leds_snapshot();
-  fx_starting = true;
   fx_hue = 0;
   fx_hue_step = 1;
   fx_blend = 0;
@@ -307,19 +328,21 @@ void upd__Rainbow() {
       fx_blend++;
     }
   }
+
+  duration_check();
 }
 
 State fx__Rainbow("Rainbow", entr__Rainbow, upd__Rainbow);
 
 /*------------------------------------------------------------------------------
   Sinelon
+  - StyleEnum::BI_DIR_SIDE2SIDE
 
   A colored dot sweeping back and forth, with fading trails
 ------------------------------------------------------------------------------*/
 
 void entr__Sinelon() {
-  fx_has_finished = false;
-  segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
+  init_fx();
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
@@ -339,20 +362,22 @@ void upd__Sinelon() {
     fadeToBlackBy(leds_snapshot, FLC::N, 5);
     fadeToBlackBy(fx1, s1, 5);
   }
+
+  duration_check();
 }
 
 State fx__Sinelon("Sinelon", entr__Sinelon, upd__Sinelon);
 
 /*------------------------------------------------------------------------------
   BPM
+  - StyleEnum::HALFWAY_PERIO_SPLIT_N2
+  - StyleEnum::BI_DIR_SIDE2SIDE
 
   Colored stripes pulsing at a defined beats-per-minute
 ------------------------------------------------------------------------------*/
 
 void entr__BPM() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-  segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+  init_fx();
   create_leds_snapshot();
   fx_timebase = millis();
   fx_hue = 0;
@@ -381,19 +406,21 @@ void upd__BPM() {
   EVERY_N_MILLISECONDS(30) {
     fx_hue = fx_hue + fx_hue_step;
   }
+
+  duration_check();
 }
 
 State fx__BPM("BPM", entr__BPM, upd__BPM);
 
 /*------------------------------------------------------------------------------
   Juggle
+  - StyleEnum::PERIO_OPP_CORNERS_N4
 
   8 colored dots, weaving in and out of sync with each other
 ------------------------------------------------------------------------------*/
 
 void entr__Juggle() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
+  init_fx();
 }
 
 void upd__Juggle() {
@@ -409,6 +436,8 @@ void upd__Juggle() {
   EVERY_N_MILLIS(10) {
     fadeToBlackBy(fx1, s1, 24);
   }
+
+  duration_check();
 }
 
 State fx__Juggle("Juggle", entr__Juggle, upd__Juggle);
@@ -447,13 +476,14 @@ State fx__Strobe("Strobe", entr__Strobe, upd__Strobe);
 
 /*------------------------------------------------------------------------------
   Dennis
+  - StyleEnum::PERIO_OPP_CORNERS_N2
+  - StyleEnum::UNI_DIR_SIDE2SIDE
+  - StyleEnum::HALFWAY_PERIO_SPLIT_N2
+
 ------------------------------------------------------------------------------*/
 
 void entr__Dennis() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
-  // segmntr1.set_style(StyleEnum::UNI_DIR_SIDE2SIDE);
-  segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
+  init_fx();
   create_leds_snapshot();
   clear_CRGBs(fx1);
   fx_timebase = millis();
@@ -477,19 +507,21 @@ void upd__Dennis() {
       fx_blend++;
     }
   }
+
+  duration_check();
 }
 
 State fx__Dennis("Dennis", entr__Dennis, upd__Dennis);
 
 /*------------------------------------------------------------------------------
   Try
+  - StyleEnum::HALFWAY_PERIO_SPLIT_N2
+  - StyleEnum::BI_DIR_SIDE2SIDE
+  - StyleEnum::PERIO_OPP_CORNERS_N4
 ------------------------------------------------------------------------------*/
 
 void entr__Try() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N4);
-  // segmntr1.set_style(StyleEnum::BI_DIR_SIDE2SIDE);
-  segmntr1.set_style(StyleEnum::HALFWAY_PERIO_SPLIT_N2);
+  init_fx();
   create_leds_snapshot();
   clear_CRGBs(fx1);
   clear_CRGBs(fx2);
@@ -531,22 +563,24 @@ void upd__Try() {
     }
     fx_hue += 1;
   }
+
+  duration_check();
 }
 
 State fx__Try("Try", entr__Try, upd__Try);
 
 /*------------------------------------------------------------------------------
   RainbowBarf
+  - StyleEnum::PERIO_OPP_CORNERS_N2
 
   Demonstrates gaussian with sub-pixel `mu`
+
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void entr__RainbowBarf() {
-  fx_has_finished = false;
-  segmntr1.set_style(StyleEnum::PERIO_OPP_CORNERS_N2);
+  init_fx();
   create_leds_snapshot();
-  fx_starting = true;
   fx_blend = 0;
 }
 
@@ -580,24 +614,26 @@ void upd__RainbowBarf() {
       fx_blend++;
     }
   }
+
+  duration_check();
 }
 
 State fx__RainbowBarf("RainbowBarf", entr__RainbowBarf, upd__RainbowBarf);
 
 /*------------------------------------------------------------------------------
   RainbowBarf_2
+  - StyleEnum::FULL_STRIP
 
   Demonstrates gaussian with integer-pixel `mu`
+
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void entr__RainbowBarf_2() {
-  segmntr1.set_style(StyleEnum::FULL_STRIP);
-  fx_starting = true;
+  init_fx();
 }
 
 void upd__RainbowBarf_2() {
-  fx_has_finished = false;
   s1 = segmntr1.get_base_numel();
   uint8_t gauss8[FLC::N];   // Will hold the Gaussian profile
   static uint16_t wave_idx; // `triwave8`-index driving `sigma`
@@ -630,6 +666,8 @@ void upd__RainbowBarf_2() {
       }
     }
   }
+
+  duration_check();
 }
 
 State fx__RainbowBarf_2("RainbowBarf_2", entr__RainbowBarf_2,
@@ -637,13 +675,15 @@ State fx__RainbowBarf_2("RainbowBarf_2", entr__RainbowBarf_2,
 
 /*------------------------------------------------------------------------------
   RainbowHeartBeat
+  - StyleEnum::FULL_STRIP
+
   Still ugly staccato
+
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void entr__RainbowHeartBeat() {
-  fx_has_finished = false;
-  segmntr1.set_style(StyleEnum::FULL_STRIP);
+  init_fx();
   fx_timebase = millis();
 }
 
@@ -669,6 +709,8 @@ void upd__RainbowHeartBeat() {
   EVERY_N_MILLIS(20) {
     // fadeToBlackBy(fx1, FLC::N, 60);
   }
+
+  duration_check();
 }
 
 State fx__RainbowHeartBeat("RainbowHeartBeat", entr__RainbowHeartBeat,
@@ -676,20 +718,19 @@ State fx__RainbowHeartBeat("RainbowHeartBeat", entr__RainbowHeartBeat,
 
 /*------------------------------------------------------------------------------
   RainbowSurf
+  - StyleEnum::FULL_STRIP
 
   A slowly shifting rainbow over the full strip with a faster smaller rainbow
   wave surfing on top.
+
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
 
 void entr__RainbowSurf() {
-  fx_has_finished = false;
-  segmntr1.set_style(StyleEnum::FULL_STRIP);
+  init_fx();
   create_leds_snapshot();
-  fx_starting = true;
   fx_blend = 0;
   fx_hue = 0;
-  fx_t0 = millis();
 }
 
 void upd__RainbowSurf() {
@@ -728,10 +769,7 @@ void upd__RainbowSurf() {
     fx_hue += 1;
   }
 
-  // DEBUG: Working proof of concept for new mechanism `auto next fx`
-  if (millis() - fx_t0 > 4000) {
-    fx_has_finished = true;
-  }
+  duration_check();
 }
 
 State fx__RainbowSurf("RainbowSurf", entr__RainbowSurf, upd__RainbowSurf);

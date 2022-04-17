@@ -3,7 +3,7 @@
 Manages the Finite State Machine resonsible for calculating the FastLED effect
 
 Dennis van Gils
-16-04-2022
+17-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTMANAGER_H
 #define DVG_FASTLED_EFFECTMANAGER_H
@@ -14,6 +14,7 @@ Dennis van Gils
 #include "FastLED.h"
 #include "FiniteStateMachine.h"
 
+#include "DvG_FastLED_StripSegmenter.h"
 #include "DvG_FastLED_config.h"
 #include "DvG_FastLED_effects.h"
 
@@ -28,6 +29,24 @@ enum FxOverrideEnum {
 };
 
 /*------------------------------------------------------------------------------
+  FX preset
+------------------------------------------------------------------------------*/
+
+struct FX_preset {
+  // Constructors
+  FX_preset(State _fx) : fx{_fx} {}
+  FX_preset(State _fx, uint32_t _duration) : fx{_fx}, duration{_duration} {}
+  FX_preset(State _fx, StyleEnum _style) : fx{_fx}, style{_style} {}
+  FX_preset(State _fx, StyleEnum _style, uint32_t _duration)
+      : fx{_fx}, style{_style}, duration{_duration} {}
+
+  // Members and defaults
+  State fx{fx__AllBlack};
+  StyleEnum style{StyleEnum::FULL_STRIP};
+  uint32_t duration{0}; // 0 indicates infinite duration or until effect is done
+};
+
+/*------------------------------------------------------------------------------
   FastLED_EffectManager
   NOTE: Handle this class as a singleton
   TODO: Enforce singleton
@@ -36,7 +55,7 @@ enum FxOverrideEnum {
 class FastLED_EffectManager {
 private:
   uint16_t _fx_idx = 0;
-  std::vector<State> _fx_list;
+  std::vector<FX_preset> _fx_list;
   bool _fx_has_changed = true;
   FxOverrideEnum _fx_override = FxOverrideEnum::NONE;
 
@@ -44,14 +63,16 @@ private:
   FSM _fsm_fx = FSM(fx__AllBlack);
 
 public:
-  FastLED_EffectManager(std::vector<State> fx_list) {
+  FastLED_EffectManager(std::vector<FX_preset> fx_list) {
     /* Constructor, initialized with a presets list of FastLED effects to run
      */
     _fx_list = fx_list;
-    _fsm_fx.immediateTransitionTo(_fx_list[_fx_idx]);
+    _fsm_fx.immediateTransitionTo(_fx_list[_fx_idx].fx);
+    fx_style = _fx_list[_fx_idx].style;
+    fx_duration = _fx_list[_fx_idx].duration;
   }
 
-  void set_fx_list(std::vector<State> fx_list) {
+  void set_fx_list(std::vector<FX_preset> fx_list) {
     /* Dynamically change the presets list of FastLED effects to run
      */
     _fx_list = fx_list;
@@ -64,16 +85,20 @@ public:
     _fsm_fx.update();
   }
 
+  /* Redundant
   uint32_t time_in_current_fx() {
     return _fsm_fx.timeInCurrentState();
   }
+  */
+
+  /* Redundant
+  uint16_t fx_idx() {
+    return _fx_idx;
+  }
+  */
 
   FxOverrideEnum fx_override() {
     return _fx_override;
-  }
-
-  uint16_t fx_idx() {
-    return _fx_idx;
   }
 
   bool fx_has_changed() {
@@ -120,8 +145,11 @@ public:
   void set_fx(uint16_t idx) {
     _fx_override = FxOverrideEnum::NONE;
     _fx_idx = min(idx, _fx_list.size() - 1);
-    _fsm_fx.transitionTo(_fx_list[_fx_idx]);
+    _fsm_fx.transitionTo(_fx_list[_fx_idx].fx);
     _fx_has_changed = true;
+
+    fx_style = _fx_list[_fx_idx].style;
+    fx_duration = _fx_list[_fx_idx].duration;
   }
 
   void prev_fx() {
