@@ -54,7 +54,7 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   FX_preset(fx__HeartBeat_2    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
   FX_preset(fx__Rainbow        , StyleEnum::FULL_STRIP            , 13000),
   FX_preset(fx__Sinelon        , StyleEnum::BI_DIR_SIDE2SIDE      , 13000),
-  FX_preset(fx__FadeToRed      , 4000),
+  FX_preset(fx__FadeToRed      , 2000),
   FX_preset(fx__FadeToBlack    , 5000),
 });
 //*/
