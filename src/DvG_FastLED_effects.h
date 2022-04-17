@@ -111,10 +111,6 @@ CRGBPalette16 custom_palette_1 = {
   Fades to black piecewise, getting slower near the dim end
 ------------------------------------------------------------------------------*/
 
-void entr__FadeToBlack() {
-  init_fx();
-}
-
 void upd__FadeToBlack() {
   if (!fx_has_finished) {
     EVERY_N_MILLIS(10) {
@@ -125,15 +121,11 @@ void upd__FadeToBlack() {
   }
 }
 
-State fx__FadeToBlack("FadeToBlack", entr__FadeToBlack, upd__FadeToBlack);
+State fx__FadeToBlack("FadeToBlack", init_fx, upd__FadeToBlack);
 
 /*------------------------------------------------------------------------------
   FadeToWhite
 ------------------------------------------------------------------------------*/
-
-void entr__FadeToWhite() {
-  init_fx();
-}
 
 void upd__FadeToWhite() {
   if (!fx_has_finished) {
@@ -145,15 +137,11 @@ void upd__FadeToWhite() {
   }
 }
 
-State fx__FadeToWhite("FadeToWhite", entr__FadeToWhite, upd__FadeToWhite);
+State fx__FadeToWhite("FadeToWhite", init_fx, upd__FadeToWhite);
 
 /*------------------------------------------------------------------------------
   FadeToRed
 ------------------------------------------------------------------------------*/
-
-void entr__FadeToRed() {
-  init_fx();
-}
 
 void upd__FadeToRed() {
   if (!fx_has_finished) {
@@ -165,17 +153,13 @@ void upd__FadeToRed() {
   }
 }
 
-State fx__FadeToRed("FadeToRed", entr__FadeToRed, upd__FadeToRed);
+State fx__FadeToRed("FadeToRed", init_fx, upd__FadeToRed);
 
 /*------------------------------------------------------------------------------
   TestPattern
 
   [green - ... blue / yellow / blue / yellow ... - red]
 ------------------------------------------------------------------------------*/
-
-void entr__TestPattern() {
-  init_fx();
-}
 
 void upd__TestPattern() {
   s1 = segmntr1.get_base_numel();
@@ -189,15 +173,11 @@ void upd__TestPattern() {
   duration_check();
 }
 
-State fx__TestPattern("TestPattern", entr__TestPattern, upd__TestPattern);
+State fx__TestPattern("TestPattern", init_fx, upd__TestPattern);
 
 /*------------------------------------------------------------------------------
   IR distance test
 ------------------------------------------------------------------------------*/
-
-void entr__IRDist() {
-  init_fx();
-}
 
 void upd__IRDist() {
   CRGB color =
@@ -207,7 +187,7 @@ void upd__IRDist() {
   duration_check();
 }
 
-State fx__IRDist("IRDist", entr__IRDist, upd__IRDist);
+State fx__IRDist("IRDist", init_fx, upd__IRDist);
 
 /*------------------------------------------------------------------------------
   HeartBeatAwaken
