@@ -108,7 +108,7 @@ void entr__AllBlack() {
   fill_solid(leds, FLC::N, CRGB::Black);
 }
 
-State fx__AllBlack("AllBlack", entr__AllBlack,  duration_check);
+State fx__AllBlack("AllBlack", entr__AllBlack, duration_check);
 
 /*------------------------------------------------------------------------------
   AllWhite
@@ -164,11 +164,12 @@ void upd__IRDist() {
 State fx__IRDist("IRDist", entr__IRDist, upd__IRDist);
 
 /*------------------------------------------------------------------------------
-  HeartBeat
+  HeartBeatAwaken
   - StyleEnum::HALFWAY_PERIO_SPLIT_N2
   - StyleEnum::BI_DIR_SIDE2SIDE
 
-  A beating heart. You must call `generate_HeartBeat()` once in `setup()`.
+  A beating heart, beating brighter when time goes by.
+  You must call `generate_HeartBeat()` once in `setup()`.
 
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
@@ -187,6 +188,61 @@ void generate_HeartBeat() {
   // Offset the start of the ECG wave
   std::rotate(ECG::wave, ECG::wave + 44, ECG::wave + ECG_N_SMP);
 }
+
+void entr__HeartBeatAwaken() {
+  init_fx();
+  create_leds_snapshot();
+  clear_CRGBs(fx1);
+  fx_timebase = millis();
+  fx_hue = 127;
+}
+
+void upd__HeartBeatAwaken() {
+  s1 = segmntr1.get_base_numel();
+  uint8_t ECG_idx;
+  float ECG_ampl;
+
+  ECG_idx = beat8(30, fx_timebase);
+  ECG_ampl = ECG::wave[ECG_idx];
+  ECG_ampl = max(ECG_ampl, 0.13); // Suppress ECG depolarization from the wave
+
+  // Calculate intensities in pure white
+  idx1 = round((1 - ECG_ampl) * (s1 - 1));
+  fx1[idx1] += CHSV(HUE_RED, 0, uint8_t(ECG::wave[ECG_idx] * 200));
+  populate_fx1_strip();
+
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
+
+  // Now shift pure white to color
+  for (idx1 = 0; idx1 < FLC::N; idx1++) {
+    leds[idx1] = CHSV(fx_hue + idx1 * 4, 255, leds[idx1].getLuma());
+  }
+
+  EVERY_N_MILLIS(10) {
+    fadeToBlackBy(leds_snapshot, FLC::N, 5);
+    fadeToBlackBy(fx1, s1, 10);
+  }
+
+  EVERY_N_MILLIS(50) {
+    fx_hue++;
+  }
+
+  duration_check();
+}
+
+State fx__HeartBeatAwaken("HeartBeatAwaken", entr__HeartBeatAwaken,
+                          upd__HeartBeatAwaken);
+
+/*------------------------------------------------------------------------------
+  HeartBeat
+  - StyleEnum::HALFWAY_PERIO_SPLIT_N2
+  - StyleEnum::BI_DIR_SIDE2SIDE
+
+  A beating heart.
+  You must call `generate_HeartBeat()` once in `setup()`.
+
+  Author: Dennis van Gils
+------------------------------------------------------------------------------*/
 
 void entr__HeartBeat() {
   init_fx();

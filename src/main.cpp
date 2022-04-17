@@ -42,7 +42,7 @@ Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
 ------------------------------------------------------------------------------*/
 // clang-format off
 
-//*
+/*
 // Initialize with a preset list of FastLED effects to show consecutively
 FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   //        FastLED effect   strip segmentation style           duration [ms]
@@ -55,13 +55,13 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   FX_preset(fx__Rainbow    , StyleEnum::FULL_STRIP            , 13000),
   FX_preset(fx__Sinelon    , StyleEnum::BI_DIR_SIDE2SIDE      , 13000),
 });
-//*/
-/*
-FastLED_EffectManager fx_mgr = FastLED_EffectManager({
-  FX_preset(fx__Sinelon    , StyleEnum::BI_DIR_SIDE2SIDE      , 5000),
-  FX_preset(fx__AllWhite   , StyleEnum::BI_DIR_SIDE2SIDE      , 1000),
-});
 */
+//*
+FastLED_EffectManager fx_mgr = FastLED_EffectManager({
+  FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 10000),
+  FX_preset(fx__AllWhite, 2000),
+});
+//*/
 
 // clang-format on
 
