@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-17-04-2022
+18-04-2022
 */
 
 #include <Arduino.h>
@@ -145,6 +145,7 @@ FSM fsm_main = FSM(show__FastLED);
   4) ┌  Set master switch to OFF (stay off regardless of audience present)
 
 ------------------------------------------------------------------------------*/
+static uint8_t menu_idx = 0; // Note: index starts at 0 == menu option 1
 
 void flash_menu(const struct CRGB &color) {
   fill_solid(leds, FLC::N, CRGB::Black);
@@ -162,25 +163,31 @@ void flash_menu(const struct CRGB &color) {
 void entr__ShowMenu() {
   Ser.println("Entering MENU");
   flash_menu(CRGB::Red);
+  menu_idx = 0;
 }
 
 void upd__ShowMenu() {
-  // In progress: Shows dummy menu for the moment
-  static uint8_t leds_offset = 0;
-
   if (fsm_main.timeInCurrentState() > 10000) {
     fsm_main.transitionTo(show__FastLED);
   }
+
+  // Show menu option by lighting up the appropiate corner of the mirror
   fill_solid(leds, FLC::N, CRGB::Black);
-  fill_solid(&leds[leds_offset], 13, CRGB::Red);
+  for (int16_t idx = menu_idx * FLC::L - FLC::MENU_WIDTH;
+       idx < menu_idx * FLC::L + FLC::MENU_WIDTH; idx++) {
+    int16_t modval = idx % FLC::N;
+    if (modval < 0) {
+      modval += FLC::N;
+    }
+    leds[modval] = CRGB::Red;
+  }
   FastLED.delay(20);
 
   // Check for button presses
   button.poll();
   if (button.singleClick()) {
     Ser.println("single click");
-    leds_offset += 13;
-    leds_offset %= FLC::N;
+    menu_idx = (menu_idx + 1) % 4;
   }
   if (button.longPress()) {
     Ser.println("long press");
@@ -189,7 +196,32 @@ void upd__ShowMenu() {
 }
 
 void exit__ShowMenu() {
-  Ser.println("Exiting MENU");
+  Ser.print("Exiting MENU with chosen option: ");
+  Ser.println(menu_idx + 1);
+
+  switch (menu_idx) {
+    case 0:
+      Ser.println("Default mode is set");
+      fx_mgr.set_fx(0);
+      ENA_auto_next_fx = true;
+      break;
+    case 1:
+      ENA_auto_next_fx = !ENA_auto_next_fx;
+      Ser.print("Auto-next FX: ");
+      Ser.println(ENA_auto_next_fx ? "ON" : "OFF");
+      break;
+    case 2:
+      Ser.print("IR distance test: ");
+      Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::IR_DIST) ? "ON"
+                                                                     : "OFF");
+      break;
+    case 3:
+      Ser.print("Output: ");
+      Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_BLACK) ? "OFF"
+                                                                       : "ON");
+      break;
+  }
+
   flash_menu(CRGB::Green);
 }
 
@@ -251,7 +283,13 @@ void upd__ShowFastLED() {
   if (fx_has_finished &
       (fx_mgr.fx_override() == FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE)) {
     // Woken up from sleep because an audience is present
-    fx_mgr.set_fx(0);
+    if (ENA_auto_next_fx) {
+      // Start from the beginning of the effects preset list
+      fx_mgr.set_fx(0);
+    } else {
+      // Pick up at the last shown effect
+      fx_mgr.set_fx(FxOverrideEnum::NONE);
+    }
     tick_audience = now;
 
 #ifdef USE_ANSI

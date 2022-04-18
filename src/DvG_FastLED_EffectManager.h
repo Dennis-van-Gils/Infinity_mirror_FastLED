@@ -3,7 +3,7 @@
 Manages the Finite State Machine resonsible for calculating the FastLED effect
 
 Dennis van Gils
-17-04-2022
+18-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTMANAGER_H
 #define DVG_FASTLED_EFFECTMANAGER_H
