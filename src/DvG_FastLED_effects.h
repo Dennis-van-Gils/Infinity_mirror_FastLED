@@ -205,9 +205,10 @@ namespace ECG {
 } // namespace ECG
 
 void generate_HeartBeat() {
-  // Generate ECG wave data over the output range [0 - 1]. Note that the
-  // `resting` state of the heart is somewhere above 0. 0 is simply the minimum
-  // of the ECG action potential, corresponding to the ECG depolarization part.
+  // Generate ECG wave data over the output range [0 - 1].
+  // Note that the `resting` state of the heart is near a value of 0.13.
+  // 0 is simply the minimum of the ECG action potential, corresponding to the
+  // ECG depolarization part.
   generate_ECG(ECG::wave, ECG_N_SMP);
 
   // Shift the start of the ECG wave in time
