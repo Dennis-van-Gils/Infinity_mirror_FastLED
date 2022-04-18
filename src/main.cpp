@@ -134,6 +134,16 @@ FSM fsm_main = FSM(show__FastLED);
 
 /*------------------------------------------------------------------------------
   Show Menu machinery
+
+  Menu options are indicated by lighting up one of the four corners of the
+  mirror. Always starts with option 1 selected in the menu.
+
+  1) └  Default mode: Show all effects in the preset list consecutively as long
+        as an audience is present. Turn the master switch back ON if needed.
+  2) ┘  Toggle `auto-next FX` ON/OFF
+  3) ┐  Override with IR distance test
+  4) ┌  Set master switch to OFF (stay off regardless of audience present)
+
 ------------------------------------------------------------------------------*/
 
 void flash_menu(const struct CRGB &color) {
@@ -191,14 +201,14 @@ void upd__ShowFastLED() {
   uint32_t now = millis();
   static uint32_t tick_audience = now; // Time at audience last detected
 
-  // Audience check: Time-out and go back to sleep when no audience is present
+  // Check if we timed out in the default mode because no audience is present
   if (!fx_mgr.fx_override() & (now - tick_audience > FLC::AUDIENCE_TIMEOUT)) {
     fx_mgr.set_fx(FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE);
 
 #ifdef USE_ANSI
     ansi.foreground(ANSI::red);
 #endif
-    Ser.println("Lost interest by audience");
+    Ser.println("Lost interest from audience");
 #ifdef USE_ANSI
     ansi.normal();
 #endif
@@ -237,9 +247,10 @@ void upd__ShowFastLED() {
     fsm_main.transitionTo(show__Menu);
   }
 
+  // Check for an audience and/or auto-advancing to the next FX
   if (fx_has_finished &
       (fx_mgr.fx_override() == FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE)) {
-    // Check for waking up from sleep because an audience is present
+    // Woken up from sleep because an audience is present
     fx_mgr.set_fx(0);
     tick_audience = now;
 
@@ -252,7 +263,7 @@ void upd__ShowFastLED() {
 #endif
 
   } else if (ENA_auto_next_fx & fx_has_finished & !fx_mgr.fx_override()) {
-    // Check for auto-advancing to the next FastLED effect in the presets list
+    // Auto-advance to the next FastLED effect in the presets list
     fx_mgr.next_fx();
   }
 }
