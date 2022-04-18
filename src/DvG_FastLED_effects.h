@@ -275,6 +275,7 @@ State fx__HeartBeatAwaken("HeartBeatAwaken", entr__HeartBeatAwaken,
 
   A beating heart.
   You must call `generate_HeartBeat()` once in `setup()`.
+  Effect has issues when spread out over too many leds. It is not continuous.
 
   Author: Dennis van Gils
 ------------------------------------------------------------------------------*/
