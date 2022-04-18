@@ -32,3 +32,24 @@
   Blue : analog out to pin A0 on Arduino           
   
   Fit: distance [cm] = A / bitval ^ C - B, where bitval is at 10-bit
+  
+* Standby currents
+  
+  IR distance sensor, running    : ~ 30 mA
+  RGB LED strip with all leds off: ~ 58 mA
+                                   -------
+                                     88 mA
+                                     
+* SAMD51 Standby mode snippet
+  Is hardly worth it, because of the large standby currents of the IR distance
+  sensor and RGB LED strip.
+  
+  #include "Adafruit_SleepyDog.h"
+  
+  USB->DEVICE.CTRLA.bit.ENABLE = 0;          // Disable the USB peripheral
+  while (USB->DEVICE.SYNCBUSY.bit.ENABLE) {} // Wait for synchronization
+  USB->DEVICE.CTRLA.bit.RUNSTDBY = 0;        // Deactivate run on standby
+  USB->DEVICE.CTRLA.bit.ENABLE = 1;          // Enable USB peripheral
+  while (USB->DEVICE.SYNCBUSY.bit.ENABLE) {} // Wait for synchronization
+
+  Watchdog.sleep(1000);
