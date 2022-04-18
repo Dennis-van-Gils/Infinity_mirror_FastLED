@@ -213,6 +213,12 @@ void generate_HeartBeat() {
 
   // Shift the start of the ECG wave in time
   std::rotate(ECG::wave, ECG::wave + 44, ECG::wave + ECG_N_SMP);
+
+  // Suppress ECG depolarization from the wave and rescale back to [0 - 1]
+  for (idx1 = 0; idx1 < ECG_N_SMP; idx1++) {
+    ECG::wave[idx1] = max(ECG::wave[idx1], 0.13);
+    ECG::wave[idx1] = (ECG::wave[idx1] - 0.13) / (1 - 0.13);
+  }
 }
 
 void entr__HeartBeatAwaken() {
@@ -229,10 +235,6 @@ void upd__HeartBeatAwaken() {
 
   ECG_idx = beat8(30, fx_timebase); // [0 - 255]
   ECG_ampl = ECG::wave[ECG_idx];    // [0 - 1]
-
-  // Suppress ECG depolarization from the wave and rescale back to [0 - 1]
-  ECG_ampl = max(ECG_ampl, 0.13);
-  ECG_ampl = (ECG_ampl - 0.13) / (1 - 0.13);
 
   // Calculate intensities in pure white
   const uint8_t offs = 1; // ~ number of leds always lid
@@ -289,12 +291,11 @@ void upd__HeartBeat() {
   uint8_t ECG_idx;
   float ECG_ampl;
 
-  ECG_idx = beat8(30, fx_timebase);
-  ECG_ampl = ECG::wave[ECG_idx];
-  ECG_ampl = max(ECG_ampl, 0.13); // Suppress ECG depolarization from the wave
+  ECG_idx = beat8(30, fx_timebase); // [0 255]
+  ECG_ampl = ECG::wave[ECG_idx];    // [0 - 1]
 
   idx1 = round((1 - ECG_ampl) * (s1 - 1));
-  fx1[idx1] += CHSV(HUE_RED, 255, uint8_t(ECG::wave[ECG_idx] * 200));
+  fx1[idx1] += CHSV(HUE_RED, 255, round(ECG::wave[ECG_idx] * 255));
   populate_fx1_strip();
 
   add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
@@ -340,7 +341,7 @@ void upd__HeartBeat_2() {
   }
 
   // Effect 2
-  ECG_idx = beat8(heart_rate, fx_timebase);
+  ECG_idx = beat8(heart_rate, fx_timebase); // [0 255]
   fx_intens = round(ECG::wave[ECG_idx] * 100);
 
   /*
@@ -413,9 +414,8 @@ void upd__Rainbow() {
 
   EVERY_N_MILLIS(10) {
     fadeToBlackBy(leds_snapshot, FLC::N, 5);
-  }
-  EVERY_N_MILLIS(50) {
-    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 10.) + 1;
+
+    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 1.) + 1;
     fx_hue = fx_hue + fx_hue_step;
     wave_idx++;
   }
@@ -792,7 +792,7 @@ void upd__RainbowHeartBeat() {
   static uint8_t heart_rate = 30;
 
   ECG_idx = beat8(heart_rate, fx_timebase);
-  sigma = ECG::wave[ECG_idx] - 0.13; // -0.13 removes ECG depolarization
+  sigma = ECG::wave[ECG_idx]; // [0 - 1]
   profile_gauss8strip(gauss8, mu, sigma * 6);
 
   for (idx1 = 0; idx1 < s1; idx1++) {

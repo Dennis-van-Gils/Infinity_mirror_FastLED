@@ -45,8 +45,8 @@ Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
 ///*
 // Initialize with a preset list of FastLED effects to show consecutively
 FastLED_EffectManager fx_mgr = FastLED_EffectManager({
-  //        FastLED effect   strip segmentation style           duration [ms]
-  //        --------------   ------------------------           -------------
+  //        FastLED effect       strip segmentation style           duration [ms]
+  //        --------------       ------------------------           -------------
   FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 9800),
   FX_preset(fx__RainbowSurf    , StyleEnum::FULL_STRIP            , 4000),
   FX_preset(fx__RainbowBarf    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
@@ -61,6 +61,9 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
 /*
 FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 10000),
+  FX_preset(fx__HeartBeat, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 10000),
+  FX_preset(fx__HeartBeat_2, StyleEnum::PERIO_OPP_CORNERS_N2, 10000),
+  FX_preset(fx__RainbowHeartBeat, StyleEnum::FULL_STRIP, 10000),
   FX_preset(fx__FadeToBlack, 2000),
 });
 */
