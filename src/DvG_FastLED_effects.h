@@ -227,23 +227,33 @@ void upd__HeartBeatAwaken() {
   uint8_t ECG_idx;
   float ECG_ampl;
 
-  ECG_idx = beat8(30, fx_timebase);
-  ECG_ampl = ECG::wave[ECG_idx];
-  ECG_ampl = max(ECG_ampl, 0.13); // Suppress ECG depolarization from the wave
+  ECG_idx = beat8(30, fx_timebase); // [0 - 255]
+  ECG_ampl = ECG::wave[ECG_idx];    // [0 - 1]
+
+  // Suppress ECG depolarization from the wave and rescale back to [0 - 1]
+  ECG_ampl = max(ECG_ampl, 0.13);
+  ECG_ampl = (ECG_ampl - 0.13) / (1 - 0.13);
 
   // Calculate intensities in pure white
-  idx1 = round((1 - ECG_ampl) * (s1 - 1));
-  fx1[idx1] += CHSV(HUE_RED, 0, uint8_t(ECG::wave[ECG_idx] * 200));
+  const uint8_t offs = 1; // ~ number of leds always lid
+  idx1 = offs + round(ECG_ampl * (s1 - offs));
+  for (idx2 = 0; idx2 < idx1; idx2++) {
+    // Offset minimum intensity for better visual (... * 230 + 25)
+    fx1[idx2] += CHSV(0, 0, uint8_t(ECG_ampl * ECG_ampl * 230 + 25));
+    // fx1[idx2] += CHSV(0, 0, uint8_t(ECG_ampl * ECG_ampl * 255));
+  }
   populate_fx1_strip();
+  rotate_strip_90(fx1_strip);
   copy_strip(fx1_strip, leds);
 
   // Now shift pure white to color
   for (idx1 = 0; idx1 < FLC::N; idx1++) {
-    leds[idx1] = CHSV(fx_hue + idx1 * 4, 255, leds[idx1].getLuma());
+    leds[idx1] =
+        CHSV(fx_hue + idx1 * 255 / (FLC::N - 1), 255, leds[idx1].getLuma());
   }
 
   EVERY_N_MILLIS(10) {
-    fadeToBlackBy(fx1, s1, 10);
+    fadeToBlackBy(fx1, s1, 5);
   }
 
   EVERY_N_MILLIS(50) {
