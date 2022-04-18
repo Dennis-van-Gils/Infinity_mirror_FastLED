@@ -180,8 +180,7 @@ State fx__TestPattern("TestPattern", init_fx, upd__TestPattern);
 ------------------------------------------------------------------------------*/
 
 void upd__IRDist() {
-  CRGB color =
-      ColorFromPalette(RainbowColors_p, (uint8_t)(IR_dist_fract * 255));
+  CRGB color = ColorFromPalette(RainbowColors_p, round(IR_dist_fract * 255));
   fill_solid(leds, FLC::N, color);
 
   duration_check();
@@ -206,12 +205,12 @@ namespace ECG {
 } // namespace ECG
 
 void generate_HeartBeat() {
-  // Generate ECG wave data, output range [0 - 1]. Note that the `resting`
-  // state of the heart is somewhere above 0. 0 is simply the minimum of the
-  // ECG action potential.
+  // Generate ECG wave data over the output range [0 - 1]. Note that the
+  // `resting` state of the heart is somewhere above 0. 0 is simply the minimum
+  // of the ECG action potential, corresponding to the ECG depolarization part.
   generate_ECG(ECG::wave, ECG_N_SMP);
 
-  // Offset the start of the ECG wave
+  // Shift the start of the ECG wave in time
   std::rotate(ECG::wave, ECG::wave + 44, ECG::wave + ECG_N_SMP);
 }
 
