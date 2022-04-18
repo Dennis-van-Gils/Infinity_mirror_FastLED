@@ -21,11 +21,12 @@ Dennis van Gils
 using namespace std;
 
 enum FxOverrideEnum {
-  NONE,        // No override
-  ALL_BLACK,   // Override: Turn all leds off
-  ALL_WHITE,   // Override: Turn all leds to white
-  IR_DIST,     // Override: Show IR distance test
-  TEST_PATTERN // Override: Show test pattern
+  NONE,                       // No override
+  ALL_BLACK,                  // Override: Turn all leds off
+  ALL_WHITE,                  // Override: Turn all leds to white
+  IR_DIST,                    // Override: Show IR distance test
+  TEST_PATTERN,               // Override: Show test pattern
+  SLEEP_AND_WAIT_FOR_AUDIENCE // Override
 };
 
 /*------------------------------------------------------------------------------
@@ -138,6 +139,10 @@ public:
         break;
       case FxOverrideEnum::TEST_PATTERN:
         _fsm_fx.transitionTo(fx__TestPattern);
+        fx_duration = 0;
+        break;
+      case FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE:
+        _fsm_fx.transitionTo(fx__SleepAndWaitForAudience);
         fx_duration = 0;
         break;
       case FxOverrideEnum::NONE:

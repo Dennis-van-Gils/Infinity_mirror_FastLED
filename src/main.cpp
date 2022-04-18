@@ -188,6 +188,22 @@ void exit__ShowMenu() {
 ------------------------------------------------------------------------------*/
 
 void upd__ShowFastLED() {
+  uint32_t now = millis();
+  static uint32_t tick_audience = now; // Time at audience last detected
+
+  // Audience check: Time-out and go back to sleep when no audience is present
+  if (!fx_mgr.fx_override() & (now - tick_audience > FLC::AUDIENCE_TIMEOUT)) {
+    fx_mgr.set_fx(FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE);
+
+#ifdef USE_ANSI
+    ansi.foreground(ANSI::red);
+#endif
+    Ser.println("Lost interest by audience");
+#ifdef USE_ANSI
+    ansi.normal();
+#endif
+  }
+
   // CRITICAL: Calculate the current FastLED effect
   fx_mgr.update();
 
@@ -221,8 +237,22 @@ void upd__ShowFastLED() {
     fsm_main.transitionTo(show__Menu);
   }
 
-  // Check for auto-advancing to the next FastLED effect in the presets list
-  if (ENA_auto_next_fx & fx_has_finished & !fx_mgr.fx_override()) {
+  if (fx_has_finished &
+      (fx_mgr.fx_override() == FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE)) {
+    // Check for waking up from sleep because an audience is present
+    fx_mgr.set_fx(0);
+    tick_audience = now;
+
+#ifdef USE_ANSI
+    ansi.foreground(ANSI::green);
+#endif
+    Ser.println("Audience present");
+#ifdef USE_ANSI
+    ansi.normal();
+#endif
+
+  } else if (ENA_auto_next_fx & fx_has_finished & !fx_mgr.fx_override()) {
+    // Check for auto-advancing to the next FastLED effect in the presets list
     fx_mgr.next_fx();
   }
 }

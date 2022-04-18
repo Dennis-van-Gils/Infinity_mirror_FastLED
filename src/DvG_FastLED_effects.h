@@ -106,9 +106,32 @@ CRGBPalette16 custom_palette_1 = {
 };
 
 /*------------------------------------------------------------------------------
+  SleepAndWaitForAudience
+
+  Fades to black piecewise linear, getting slower near the dim end
+------------------------------------------------------------------------------*/
+
+void upd__SleepAndWaitForAudience() {
+  if (fx_starting) {
+    EVERY_N_MILLIS(10) {
+      fadeToBlackBy(leds, FLC::N, get_avg_luma(leds, FLC::N) > 60 ? 5 : 1);
+      fx_starting = !is_all_black(leds, FLC::N);
+    }
+  } else {
+    if (IR_dist_cm < FLC::AUDIENCE_DISTANCE) {
+      fx_about_to_finish = true;
+    }
+    duration_check();
+  }
+}
+
+State fx__SleepAndWaitForAudience("SleepAndWaitForAudience", init_fx,
+                                  upd__SleepAndWaitForAudience);
+
+/*------------------------------------------------------------------------------
   FadeToBlack
 
-  Fades to black piecewise, getting slower near the dim end
+  Fades to black piecewise linear, getting slower near the dim end
 ------------------------------------------------------------------------------*/
 
 void upd__FadeToBlack() {
