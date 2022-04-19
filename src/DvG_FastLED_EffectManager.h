@@ -3,7 +3,7 @@
 Manages the Finite State Machine resonsible for calculating the FastLED effect
 
 Dennis van Gils
-18-04-2022
+19-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTMANAGER_H
 #define DVG_FASTLED_EFFECTMANAGER_H
@@ -87,17 +87,15 @@ public:
     _fsm_fx.update();
   }
 
-  /* Redundant
   uint32_t time_in_current_fx() {
-    return _fsm_fx.timeInCurrentState();
+    // Return the elapsed time in ms wrt to the start of the 'upd__...`
+    // function, not the `entr__...` function.
+    return millis() - fx_t0;
   }
-  */
 
-  /* Redundant
   uint16_t fx_idx() {
     return _fx_idx;
   }
-  */
 
   FxOverrideEnum fx_override() {
     return _fx_override;

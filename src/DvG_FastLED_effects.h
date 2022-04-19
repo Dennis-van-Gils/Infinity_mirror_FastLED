@@ -13,7 +13,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-18-04-2022
+19-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -89,6 +89,7 @@ static void duration_check() {
     // otherwise
     fx_has_finished = fx_about_to_finish;
   }
+  fx_t0 = millis(); // Also reset time when ending
 }
 
 /*------------------------------------------------------------------------------
@@ -839,6 +840,7 @@ State fx__RainbowHeartBeat("RainbowHeartBeat", entr__RainbowHeartBeat,
 /*------------------------------------------------------------------------------
   RainbowSurf
   - StyleEnum::FULL_STRIP
+  - StyleEnum::HALFWAY_PERIO_SPLIT_N2
 
   A slowly shifting rainbow over the full strip with a faster smaller rainbow
   wave surfing on top.

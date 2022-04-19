@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-18-04-2022
+19-04-2022
 */
 
 #include <Arduino.h>
@@ -233,8 +233,15 @@ void upd__ShowFastLED() {
   uint32_t now = millis();
   static uint32_t tick_audience = now; // Time at audience last detected
 
-  // Check if we timed out in the default mode because no audience is present
-  if (!fx_mgr.fx_override() & (now - tick_audience > FLC::AUDIENCE_TIMEOUT)) {
+  // Check if we timed out because no audience is present
+  if (
+      // We just started but lost audience very quickly?
+      (!fx_mgr.fx_override() & (fx_mgr.fx_idx() == 0) &
+       (fx_mgr.time_in_current_fx() > 8500) &
+       (IR_dist_cm > FLC::AUDIENCE_DISTANCE)) |
+      // We ran the default program for an extended time but lost audience?
+      (!fx_mgr.fx_override() & (now - tick_audience > FLC::AUDIENCE_TIMEOUT))) {
+    // Go back to sleep
     fx_mgr.set_fx(FxOverrideEnum::SLEEP_AND_WAIT_FOR_AUDIENCE);
 
 #ifdef USE_ANSI
