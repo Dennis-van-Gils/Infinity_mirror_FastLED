@@ -1,0 +1,11 @@
+New transition (blend) algorithm:
+
+Create snapshot of leds
+Create start frame of new effect, called target
+
+For each pixel of the full strip:
+ Calculate in advance the per-pixel array 'fill_gradient()`. This will contain
+ the hues to step through during the transition
+ 
+ Next, we have to transition the brightness of the leds_snaphot frame towards
+ the target frame. Use `value` parameter of function `HSV()`
