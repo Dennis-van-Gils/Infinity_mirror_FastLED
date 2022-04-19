@@ -48,7 +48,7 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   //        FastLED effect       strip segmentation style           duration [ms]
   //        --------------       ------------------------           -------------
   FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 9800),
-  FX_preset(fx__RainbowSurf    , StyleEnum::FULL_STRIP            , 4000),
+  FX_preset(fx__RainbowSurf    , StyleEnum::FULL_STRIP            , 8000),
   FX_preset(fx__RainbowBarf    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
   FX_preset(fx__Dennis         , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
   FX_preset(fx__HeartBeat_2    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),

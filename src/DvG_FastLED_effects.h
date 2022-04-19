@@ -89,7 +89,6 @@ static void duration_check() {
     // otherwise
     fx_has_finished = fx_about_to_finish;
   }
-  fx_t0 = millis(); // Also reset time when ending
 }
 
 /*------------------------------------------------------------------------------
@@ -425,24 +424,19 @@ void entr__Rainbow() {
 
 void upd__Rainbow() {
   s1 = segmntr1.get_base_numel();
-  static uint8_t wave_idx;
 
-  if (fx_starting) {
-    fx_starting = false;
-    wave_idx = 0;
-  }
-
+  // NOTE: Parameter `deltaHue` of `fill_rainbow()` causes a propagating error
+  // when `deltaHue` gets truncated to an integer
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
   populate_fx1_strip();
 
   blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
+  EVERY_N_MILLIS(40) {
+    fx_hue -= fx_hue_step;
+  }
   EVERY_N_MILLIS(10) {
     fadeToBlackBy(leds_snapshot, FLC::N, 5);
-
-    fx_hue_step = round(cubicwave8(wave_idx) / 255. * 1.) + 1;
-    fx_hue = fx_hue + fx_hue_step;
-    wave_idx++;
   }
   EVERY_N_MILLIS(6) {
     if (fx_blend < 255) {
@@ -619,7 +613,8 @@ void upd__Dennis() {
   fx1[s1 - idx1 - 1] = CRGB::OrangeRed;
   populate_fx1_strip();
 
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  // blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N); // Neater
 
   EVERY_N_MILLIS(10) {
     fadeToBlackBy(leds_snapshot, FLC::N, 1);
@@ -723,7 +718,10 @@ void upd__RainbowBarf() {
   }
   populate_fx1_strip();
 
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  // `add_CRGBs() results in neater transition than `blend_CRGBs()` in this
+  // specific case, although `add_CRGBs()` can lead to 'white washing' colors
+  add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
+  // blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(20) {
     mu += .4;
@@ -862,6 +860,7 @@ void upd__RainbowSurf() {
   static float mu;
   float sigma = 12;
 
+  // Technically, it should be `/ s1`, but `/ (s1 - 1)` looks neater
   fill_rainbow(fx3, s1, fx_hue, 255 / (s1 - 1));
 
   if (fx_starting) {
@@ -874,6 +873,7 @@ void upd__RainbowSurf() {
     fx1[idx1] = CHSV(fx3[idx1].hue + gauss8[idx1], 255, 255);
   }
   populate_fx1_strip();
+  flip_strip(fx1_strip);
 
   blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
