@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-19-04-2022
+20-04-2022
 */
 
 #include <Arduino.h>
@@ -77,9 +77,9 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   Fit: distance [cm] = A / bitval ^ C - B, where bitval is at 10-bit
 */
 // clang-format off
-#define A2_BITS 10       // Calibration has been performed at 10 bits ADC only
-uint8_t IR_dist_cm = 0;  // IR distance in [cm]
-float IR_dist_fract = 0; // IR distance as fraction of the full scale [0-1]
+#define A2_BITS 10         // Calibration has been performed at 10 bits ADC only
+uint8_t IR_dist_cm = 0;    // IR distance in [cm]
+uint8_t IR_dist_fract = 0; // IR distance as fraction of the full scale [0-255]
 const uint8_t IR_DIST_MIN = 16;   // [cm]
 const uint8_t IR_DIST_MAX = 150;  // [cm]
 const float   IR_CALIB_A = 1512.89;
@@ -90,19 +90,23 @@ const float   IR_CALIB_C = 0.424;
 void update_IR_dist() {
   // Read out the IR distance sensor in [cm] and compute the running average
   uint16_t bitval;
-  uint8_t instant_cm;
-  static RunningAverage RA(10);
+  float instant_cm;
+  static RunningAverage RA(20);
 
   // Read out instanteneous IR distance
   bitval = analogRead(PIN_A2);
-  instant_cm = IR_CALIB_A / pow(bitval, IR_CALIB_C) - IR_CALIB_B; // [cm]
-  instant_cm = constrain(instant_cm, IR_DIST_MIN, IR_DIST_MAX);
+  if (bitval < 80) { // Cap readings when distance is likely too small
+    instant_cm = IR_DIST_MAX;
+  } else {
+    instant_cm = IR_CALIB_A / pow(bitval, IR_CALIB_C) - IR_CALIB_B;
+    instant_cm = constrain(instant_cm, IR_DIST_MIN, IR_DIST_MAX);
+  }
 
   // Apply running average
   RA.addValue(instant_cm);
   IR_dist_cm = RA.getAverage();
-  IR_dist_fract =
-      ((float)IR_dist_cm - IR_DIST_MIN) / (IR_DIST_MAX - IR_DIST_MIN);
+  IR_dist_fract = round((RA.getAverage() - IR_DIST_MIN) /
+                        (IR_DIST_MAX - IR_DIST_MIN) * 255);
 
   if (fx_mgr.fx_override() == FxOverrideEnum::IR_DIST) {
     Ser.print(bitval);

@@ -13,7 +13,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-19-04-2022
+20-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -33,7 +33,7 @@ using namespace std;
 
 // External variables defined in `main.cpp`
 extern uint8_t IR_dist_cm;
-extern float IR_dist_fract;
+extern uint8_t IR_dist_fract;
 
 CRGB leds[FLC::N];          // LED data of the full strip to be send out
 CRGB leds_snapshot[FLC::N]; // `leds` snapshot copy
@@ -129,6 +129,24 @@ State fx__SleepAndWaitForAudience("SleepAndWaitForAudience", init_fx,
                                   upd__SleepAndWaitForAudience);
 
 /*------------------------------------------------------------------------------
+  BlurToBlack
+
+  Blurs to black
+------------------------------------------------------------------------------*/
+
+void upd__BlurToBlack() {
+  if (!fx_has_finished) {
+    EVERY_N_MILLIS(10) {
+      blur1d(leds, FLC::N, 172);
+      fx_about_to_finish = is_all_black(leds, FLC::N);
+    }
+    duration_check();
+  }
+}
+
+State fx__BlurToBlack("BlurToBlack", init_fx, upd__BlurToBlack);
+
+/*------------------------------------------------------------------------------
   FadeToBlack
 
   Fades to black piecewise linear, getting slower near the dim end
@@ -203,8 +221,12 @@ State fx__TestPattern("TestPattern", init_fx, upd__TestPattern);
 ------------------------------------------------------------------------------*/
 
 void upd__IRDist() {
-  CRGB color = ColorFromPalette(RainbowColors_p, round(IR_dist_fract * 255));
-  fill_solid(leds, FLC::N, color);
+  EVERY_N_MILLIS(25) {
+    // Limit max to 240 instead of 255 to prevent red flickering at max distance
+    fill_solid(
+        leds, FLC::N,
+        ColorFromPalette(RainbowColors_p, (uint16_t)IR_dist_fract * 240 / 255));
+  }
 
   duration_check();
 }
@@ -379,7 +401,7 @@ void upd__HeartBeat_2() {
 
   /*
   // Make hue depend on IR_dist_cm
-  fx_hue = 200 - IR_dist_fract *  200;
+  fx_hue = 200 - IR_dist_fract * 200 / 255;
   */
 
   for (idx2 = 0; idx2 < s2; idx2++) {
@@ -721,7 +743,7 @@ void upd__RainbowBarf() {
   // `add_CRGBs() results in neater transition than `blend()` in this
   // specific case, although `add_CRGBs()` can lead to 'white washing' colors
   add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
-  //blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  // blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(20) {
     mu += .4;
