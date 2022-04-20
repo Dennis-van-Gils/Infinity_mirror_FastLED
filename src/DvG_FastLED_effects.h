@@ -430,7 +430,7 @@ void upd__Rainbow() {
   fill_rainbow(fx1, s1, fx_hue, 255 / (s1 - 1));
   populate_fx1_strip();
 
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(40) {
     fx_hue -= fx_hue_step;
@@ -613,7 +613,7 @@ void upd__Dennis() {
   fx1[s1 - idx1 - 1] = CRGB::OrangeRed;
   populate_fx1_strip();
 
-  // blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  // blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
   add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N); // Neater
 
   EVERY_N_MILLIS(10) {
@@ -669,7 +669,7 @@ void upd__Try() {
   */
 
   // blur1d(fx1_strip, FLC::N, 128);
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(10) {
     fadeToBlackBy(leds_snapshot, FLC::N, 1);
@@ -718,10 +718,10 @@ void upd__RainbowBarf() {
   }
   populate_fx1_strip();
 
-  // `add_CRGBs() results in neater transition than `blend_CRGBs()` in this
+  // `add_CRGBs() results in neater transition than `blend()` in this
   // specific case, although `add_CRGBs()` can lead to 'white washing' colors
   add_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N);
-  // blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  //blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(20) {
     mu += .4;
@@ -875,7 +875,7 @@ void upd__RainbowSurf() {
   populate_fx1_strip();
   flip_strip(fx1_strip);
 
-  blend_CRGBs(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+  blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
   EVERY_N_MILLIS(20) {
     mu += .4;

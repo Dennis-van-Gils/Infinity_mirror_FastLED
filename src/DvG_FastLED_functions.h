@@ -63,13 +63,6 @@ void add_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel) {
   }
 }
 
-void blend_CRGBs(const CRGB *in_1, const CRGB *in_2, CRGB *out, uint16_t numel,
-                 fract8 amount_of_2) {
-  for (uint16_t idx = 0; idx < numel; idx++) {
-    out[idx] = blend(in_1[idx], in_2[idx], amount_of_2);
-  }
-}
-
 bool is_all_black(CRGB *in, uint32_t numel) {
   for (uint16_t idx = 0; idx < numel; idx++) {
     if (in[idx]) {
