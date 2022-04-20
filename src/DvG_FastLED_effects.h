@@ -132,6 +132,7 @@ State fx__SleepAndWaitForAudience("SleepAndWaitForAudience", init_fx,
   BlurToBlack
 
   Blurs to black
+  Not as nice as `FadeToBlack`. Blur has issues to smoothly dim completely.
 ------------------------------------------------------------------------------*/
 
 void upd__BlurToBlack() {
