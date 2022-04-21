@@ -582,35 +582,26 @@ State fx__Juggle("Juggle", entr__Juggle, upd__Juggle);
 
 /*------------------------------------------------------------------------------
   Stobe
-
-  Needs Work. Bad design.
 ------------------------------------------------------------------------------*/
 
-/*
 namespace Strobe {
-  float FPS = 10;                              // flashes per second [Hz]
+  float FPS = 15;                              // flashes per second [Hz]
   uint16_t T_flash_delay = round(1000. / FPS); // [ms]
-  uint16_t T_flash_length = 20;                // [ms]
+  uint16_t T_flash_length = 4;                 // [ms]
+  uint32_t timer = millis();                   // [ms]
 } // namespace Strobe
 
-void entr__Strobe() {
-  fx_has_finished = false;
-  // segmntr1.set_style(StyleEnum::FULL_STRIP);
-}
-
 void upd__Strobe() {
-  s1 = segmntr1.get_base_numel();
   EVERY_N_MILLISECONDS(Strobe::T_flash_delay) {
-    FastLED.showColor(CRGB::White);
-    FastLED.show();
-    delay(Strobe::T_flash_length);
-    FastLED.showColor(CRGB::Black);
-    FastLED.show();
+    fill_solid(leds, FLC::N, CRGB::White);
+    Strobe::timer = millis();
+  }
+  if (millis() - Strobe::timer >= Strobe::T_flash_length) {
+    fill_solid(leds, FLC::N, CRGB::Black);
   }
 }
 
-State fx__Strobe("Strobe", entr__Strobe, upd__Strobe);
-*/
+State fx__Strobe("Strobe", init_fx, upd__Strobe);
 
 /*------------------------------------------------------------------------------
   Dennis
