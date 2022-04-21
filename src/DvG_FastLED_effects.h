@@ -596,9 +596,12 @@ void upd__Strobe() {
     fill_solid(leds, FLC::N, CRGB::White);
     Strobe::timer = millis();
   }
+
   if (millis() - Strobe::timer >= Strobe::T_flash_length) {
     fill_solid(leds, FLC::N, CRGB::Black);
   }
+
+  duration_check();
 }
 
 State fx__Strobe("Strobe", init_fx, upd__Strobe);
