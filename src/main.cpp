@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-20-04-2022
+21-04-2022
 */
 
 #include <Arduino.h>
@@ -52,6 +52,7 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   FX_preset(fx__HeartBeat_2    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
   FX_preset(fx__Rainbow        , StyleEnum::FULL_STRIP            , 13000),
   FX_preset(fx__Sinelon        , StyleEnum::BI_DIR_SIDE2SIDE      , 13000),
+  //FX_preset(fx__DoubleWaveInteractive, StyleEnum::COPIED_SIDES  , 13000),
   FX_preset(fx__FadeToRed      , 0),
   FX_preset(fx__FadeToBlack    , 0),
 });

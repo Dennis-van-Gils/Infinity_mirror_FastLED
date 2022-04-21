@@ -7,13 +7,14 @@ For inspiration:
   https://github.com/kitesurfer1404/WS2812FX
   https://www.youtube.com/watch?v=UZxY_BLSsGg&t=236s
   https://gist.github.com/kriegsman/a916be18d32ec675fea8
+  https://www.bhencke.com/pixelblaze
 
 FastLED API reference:
   https://github.com/FastLED/FastLED/wiki
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-20-04-2022
+21-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -37,6 +38,7 @@ extern uint8_t IR_dist_fract;
 
 CRGB leds[FLC::N];          // LED data of the full strip to be send out
 CRGB leds_snapshot[FLC::N]; // `leds` snapshot copy
+CHSV chsv_snapshot[FLC::N]; // `leds` snapshot copy in HSV
 CRGB fx1[FLC::N];           // Will be populated up to length `s1`
 CRGB fx2[FLC::N];           // Will be populated up to length `s2`
 CRGB fx1_strip[FLC::N];     // Full strip after segmenter on `fx1`
@@ -164,6 +166,39 @@ void upd__FadeToBlack() {
 }
 
 State fx__FadeToBlack("FadeToBlack", init_fx, upd__FadeToBlack);
+
+/*------------------------------------------------------------------------------
+  FadeToHSVBlack
+
+  Blurs to black using HSV.
+  Might not be visually better than the regular `fx__FadeToBlack`.
+------------------------------------------------------------------------------*/
+
+void ent__FadeToHSVBlack() {
+  init_fx();
+
+  for (idx1 = 0; idx1 < FLC::N; idx1++) {
+    chsv_snapshot[idx1] = rgb2hsv_approximate(leds[idx1]);
+  }
+}
+
+void upd__FadeToHSVBlack() {
+  if (!fx_has_finished) {
+    EVERY_N_MILLIS(10) {
+      for (idx1 = 0; idx1 < FLC::N; idx1++) {
+        if (chsv_snapshot[idx1].v > 0) {
+          chsv_snapshot[idx1].v = chsv_snapshot[idx1].v - 1;
+        }
+        leds[idx1] = CHSV(chsv_snapshot[idx1]);
+      }
+      fx_about_to_finish = is_all_black(leds, FLC::N);
+    }
+    duration_check();
+  }
+}
+
+State fx__FadeToHSVBlack("FadeToHSVBlack", ent__FadeToHSVBlack,
+                         upd__FadeToHSVBlack);
 
 /*------------------------------------------------------------------------------
   FadeToWhite
@@ -701,6 +736,46 @@ void upd__Try() {
 }
 
 State fx__Try("Try", entr__Try, upd__Try);
+
+/*------------------------------------------------------------------------------
+  DoubleWaveInteractive
+  - StyleEnum::FULL_STRIP
+  - StyleEnum::COPIED_SIDES
+------------------------------------------------------------------------------*/
+
+void entr__DoubleWaveInteractive() {
+  init_fx();
+  create_leds_snapshot();
+  fx_timebase = millis();
+  fx_blend = 0;
+}
+
+void upd__DoubleWaveInteractive() {
+  s1 = segmntr1.get_base_numel();
+
+  for (idx1 = 0; idx1 < s1; idx1++) {
+    uint8_t c = (uint16_t)idx1 * 255 / (FLC::N - 1);
+    c = beatsin8(10, 0, 255, fx_timebase, c);                 // 10 bmp
+    c = beatsin8(20, 0, 255, fx_timebase, c + IR_dist_fract); // 20 bpm
+    fx1[idx1] = CHSV(c, 255, 255);
+  }
+  populate_fx1_strip();
+
+  blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
+
+  EVERY_N_MILLIS(20) {
+    fadeToBlackBy(leds_snapshot, FLC::N, 1);
+    if (fx_blend < 255) {
+      fx_blend++;
+    }
+  }
+
+  duration_check();
+}
+
+State fx__DoubleWaveInteractive("DoubleWaveInteractive",
+                                entr__DoubleWaveInteractive,
+                                upd__DoubleWaveInteractive);
 
 /*------------------------------------------------------------------------------
   RainbowBarf
