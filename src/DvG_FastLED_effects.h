@@ -763,8 +763,11 @@ void upd__DoubleWaveInteractive() {
 
   blend(leds_snapshot, fx1_strip, leds, FLC::N, fx_blend);
 
-  EVERY_N_MILLIS(20) {
+  EVERY_N_MILLIS(10) {
     fadeToBlackBy(leds_snapshot, FLC::N, 1);
+  }
+
+  EVERY_N_MILLIS(20) {
     if (fx_blend < 255) {
       fx_blend++;
     }
