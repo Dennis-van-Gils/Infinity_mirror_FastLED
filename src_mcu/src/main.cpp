@@ -47,10 +47,10 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   //        --------------       ------------------------           -------------
   FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 9800),
   FX_preset(fx__RainbowSurf    , StyleEnum::FULL_STRIP            , 8000),
-  FX_preset(fx__RainbowBarf    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
+  FX_preset(fx__RainbowBarf    , StyleEnum::PERIO_OPP_CORNERS_N2  , 11000),
   FX_preset(fx__Dennis         , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
   FX_preset(fx__HeartBeat_2    , StyleEnum::PERIO_OPP_CORNERS_N2  , 9000),
-  FX_preset(fx__DoubleWaveIA   , StyleEnum::COPIED_SIDES          , 17000),
+  FX_preset(fx__DoubleWaveIA   , StyleEnum::COPIED_SIDES          , 19000),
   FX_preset(fx__Sinelon        , StyleEnum::BI_DIR_SIDE2SIDE      , 13000),
   FX_preset(fx__FadeToRed      , 0),
   FX_preset(fx__FadeToBlack    , 0),
