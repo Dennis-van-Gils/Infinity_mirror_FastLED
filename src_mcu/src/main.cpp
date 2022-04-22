@@ -29,9 +29,9 @@ static bool ENA_auto_next_fx = true; // Automatically go to next effect?
 static bool ENA_print_FPS = false;   // Print FPS counter to serial?
 
 // Brightness
-uint8_t bright_idx = 6;
-const uint8_t bright_lut[] = {0,   4,   8,   16,  32,  48,  64,  80,  96, 112,
-                              128, 144, 160, 176, 192, 208, 224, 240, 255};
+uint8_t bright_idx = 5;
+const uint8_t bright_lut[] = {0,   10,  30,  50,  70,  90,  110,
+                              130, 150, 170, 190, 210, 230, 255};
 
 const byte PIN_BUTTON = 9;
 Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
@@ -182,10 +182,15 @@ void show_menu_option() {
 }
 
 void show_menu_brightness() {
+  // Show the set brightness as a VU meter on the bottom side
   uint8_t bright = FastLED.getBrightness();
   for (uint16_t idx = 0; idx < FLC::L; idx++) {
-    leds[idx] = (idx * 255 / FLC::L <= bright ? CRGB::Red : CRGB::Black);
+    leds[idx] =
+        (round(255.f * idx / FLC::L) <= bright ? CRGB::Red : CRGB::Black);
   }
+  Ser.print("Brightness ");
+  Ser.println(bright_lut[bright_idx]);
+
   FastLED.delay(20);
 }
 
@@ -234,8 +239,6 @@ void upd__ShowMenu() {
     if (button.singleClick()) {
       bright_idx = (bright_idx + 1) % sizeof(bright_lut);
       FastLED.setBrightness(bright_lut[bright_idx]);
-      Ser.print("Brightness ");
-      Ser.println(bright_lut[bright_idx]);
       show_menu_brightness();
     }
     if (button.longPress()) {
