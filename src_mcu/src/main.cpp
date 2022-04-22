@@ -137,6 +137,8 @@ FSM fsm_main = FSM(show__FastLED);
 
 ------------------------------------------------------------------------------*/
 static uint8_t menu_idx = 0; // Note: index starts at 0 == menu option 1
+static uint32_t menu_tick = millis(); // [ms] Keeps track of time
+static bool menu_entered_brightness = false;
 
 void flash_menu(const struct CRGB &color) {
   fill_solid(leds, FLC::N, CRGB::Black);
@@ -152,15 +154,37 @@ void flash_menu(const struct CRGB &color) {
 }
 
 void show_menu_option() {
-  // Show menu option by lighting up the appropiate corner of the mirror
   fill_solid(leds, FLC::N, CRGB::Black);
-  for (int16_t idx = menu_idx * FLC::L - FLC::MENU_WIDTH;
-       idx < menu_idx * FLC::L + FLC::MENU_WIDTH; idx++) {
-    int16_t modval = idx % FLC::N;
-    if (modval < 0) {
-      modval += FLC::N;
+  if (menu_idx < 4) {
+    // Show menu option by lighting up the appropiate corner of the mirror
+    for (int16_t idx = menu_idx * FLC::L - FLC::MENU_WIDTH;
+         idx < menu_idx * FLC::L + FLC::MENU_WIDTH; idx++) {
+      int16_t modval = idx % FLC::N;
+      if (modval < 0) {
+        modval += FLC::N;
+      }
+      leds[modval] = CRGB::Red;
     }
-    leds[modval] = CRGB::Red;
+  } else {
+    // Show menu option 5 by lighting up the four centers of the mirror sides
+    for (byte side_idx = 0; side_idx < 4; side_idx++) {
+      for (int16_t idx = side_idx * FLC::L + FLC::L / 2 - FLC::MENU_WIDTH;
+           idx < side_idx * FLC::L + FLC::L / 2 + FLC::MENU_WIDTH; idx++) {
+        int16_t modval = idx % FLC::N;
+        if (modval < 0) {
+          modval += FLC::N;
+        }
+        leds[modval] = CRGB::Red;
+      }
+    }
+  }
+  FastLED.delay(20);
+}
+
+void show_menu_brightness() {
+  uint8_t bright = FastLED.getBrightness();
+  for (uint16_t idx = 0; idx < FLC::L; idx++) {
+    leds[idx] = (idx * 255 / FLC::L <= bright ? CRGB::Red : CRGB::Black);
   }
   FastLED.delay(20);
 }
@@ -170,23 +194,54 @@ void entr__ShowMenu() {
   flash_menu(CRGB::Red);
   menu_idx = 0;
   show_menu_option();
+  menu_entered_brightness = false;
 }
 
 void upd__ShowMenu() {
-  if (fsm_main.timeInCurrentState() > 10000) {
-    fsm_main.transitionTo(show__FastLED);
-  }
 
-  // Check for button presses
-  button.poll();
-  if (button.singleClick()) {
-    Ser.println("single click");
-    menu_idx = (menu_idx + 1) % 4;
-    show_menu_option();
-  }
-  if (button.longPress()) {
-    Ser.println("long press");
-    fsm_main.transitionTo(show__FastLED);
+  if ((menu_idx < 4) | ((menu_idx == 4) & (millis() - menu_tick < 1000))) {
+    // Handle menu options 1 to 4 and check time-out of menu option 5 to go into
+    // setting the brightness
+    if (fsm_main.timeInCurrentState() > 10000) {
+      fsm_main.transitionTo(show__FastLED);
+    }
+
+    // Check for button presses
+    button.poll();
+    if (button.singleClick()) {
+      Ser.println("single click");
+      menu_idx = (menu_idx + 1) % 5;
+      if (menu_idx == 4) {
+        menu_entered_brightness = true;
+        menu_tick = millis();
+      }
+      show_menu_option();
+    }
+    if (button.longPress()) {
+      Ser.println("long press");
+      fsm_main.transitionTo(show__FastLED);
+    }
+  } else {
+    // Setting the brightness
+    if (menu_entered_brightness) {
+      Ser.println("Entering 'Set brightness'");
+      menu_entered_brightness = false;
+      show_menu_brightness();
+    }
+
+    // Check for button presses
+    button.poll();
+    if (button.singleClick()) {
+      bright_idx = (bright_idx + 1) % sizeof(bright_lut);
+      FastLED.setBrightness(bright_lut[bright_idx]);
+      Ser.print("Brightness ");
+      Ser.println(bright_lut[bright_idx]);
+      show_menu_brightness();
+    }
+    if (button.longPress()) {
+      Ser.println("long press");
+      fsm_main.transitionTo(show__FastLED);
+    }
   }
 }
 
@@ -214,6 +269,9 @@ void exit__ShowMenu() {
       Ser.print("Output: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_BLACK) ? "OFF"
                                                                        : "ON");
+      break;
+    case 4:
+      Ser.println("Brightness is set");
       break;
   }
 
