@@ -29,9 +29,9 @@ static bool ENA_auto_next_fx = true; // Automatically go to next effect?
 static bool ENA_print_FPS = false;   // Print FPS counter to serial?
 
 // Brightness
-uint8_t bright_idx = 5;
-const uint8_t bright_lut[] = {0,   10,  30,  50,  70,  90,  110,
-                              130, 150, 170, 190, 210, 230, 255};
+uint8_t bright_idx = 6;
+const uint8_t bright_lut[] = {10,  30,  50,  70,  90,  110, 130,
+                              150, 170, 190, 210, 230, 255};
 
 const byte PIN_BUTTON = 9;
 Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
@@ -49,8 +49,8 @@ FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   FX_preset(fx__RainbowSurf    , StyleEnum::FULL_STRIP            , 8000),
   FX_preset(fx__RainbowBarf    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
   FX_preset(fx__Dennis         , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
-  FX_preset(fx__HeartBeat_2    , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
-  FX_preset(fx__DoubleWaveIA   , StyleEnum::COPIED_SIDES          , 13000),
+  FX_preset(fx__HeartBeat_2    , StyleEnum::PERIO_OPP_CORNERS_N2  , 9000),
+  FX_preset(fx__DoubleWaveIA   , StyleEnum::COPIED_SIDES          , 17000),
   FX_preset(fx__Sinelon        , StyleEnum::BI_DIR_SIDE2SIDE      , 13000),
   FX_preset(fx__FadeToRed      , 0),
   FX_preset(fx__FadeToBlack    , 0),
@@ -129,16 +129,17 @@ FSM fsm_main = FSM(show__FastLED);
   Menu options are indicated by lighting up one of the four corners of the
   mirror. Always starts with option 1 selected in the menu.
 
-  1) └  Default mode: Show all effects in the preset list consecutively as long
+  1) All sides lit up: Set brighness
+  2) └  Default mode: Show all effects in the preset list consecutively as long
         as an audience is present. Turn the master switch back ON if needed.
-  2) ┘  Toggle `auto-next FX` ON/OFF
-  3) ┐  Override with IR distance test
-  4) ┌  Set master switch to OFF (stay off regardless of audience present)
+  3) ┘  Toggle `auto-next FX` ON/OFF
+  4) ┐  Override with IR distance test
+  5) ┌  Set master switch to OFF (stay off regardless of audience present)
 
 ------------------------------------------------------------------------------*/
 static uint8_t menu_idx = 0; // Note: index starts at 0 == menu option 1
 static uint32_t menu_tick = millis(); // [ms] Keeps track of time
-static bool menu_entered_brightness = false;
+static bool menu_init_brightness = false;
 
 void flash_menu(const struct CRGB &color) {
   fill_solid(leds, FLC::N, CRGB::Black);
@@ -155,10 +156,10 @@ void flash_menu(const struct CRGB &color) {
 
 void show_menu_option() {
   fill_solid(leds, FLC::N, CRGB::Black);
-  if (menu_idx < 4) {
+  if (menu_idx > 0) {
     // Show menu option by lighting up the appropiate corner of the mirror
-    for (int16_t idx = menu_idx * FLC::L - FLC::MENU_WIDTH;
-         idx < menu_idx * FLC::L + FLC::MENU_WIDTH; idx++) {
+    for (int16_t idx = (menu_idx - 1) * FLC::L - FLC::MENU_WIDTH;
+         idx < (menu_idx - 1) * FLC::L + FLC::MENU_WIDTH; idx++) {
       int16_t modval = idx % FLC::N;
       if (modval < 0) {
         modval += FLC::N;
@@ -199,13 +200,14 @@ void entr__ShowMenu() {
   flash_menu(CRGB::Red);
   menu_idx = 0;
   show_menu_option();
-  menu_entered_brightness = false;
+  menu_init_brightness = true;
+  menu_tick = millis();
 }
 
 void upd__ShowMenu() {
 
-  if ((menu_idx < 4) | ((menu_idx == 4) & (millis() - menu_tick < 1000))) {
-    // Handle menu options 1 to 4 and check time-out of menu option 5 to go into
+  if ((menu_idx > 0) | ((menu_idx == 0) & (millis() - menu_tick < 1000))) {
+    // Handle menu options 2 to 5 and check time-out of menu option 1 to go into
     // setting the brightness
     if (fsm_main.timeInCurrentState() > 10000) {
       fsm_main.transitionTo(show__FastLED);
@@ -216,8 +218,7 @@ void upd__ShowMenu() {
     if (button.singleClick()) {
       Ser.println("single click");
       menu_idx = (menu_idx + 1) % 5;
-      if (menu_idx == 4) {
-        menu_entered_brightness = true;
+      if (menu_idx == 0) {
         menu_tick = millis();
       }
       show_menu_option();
@@ -228,9 +229,9 @@ void upd__ShowMenu() {
     }
   } else {
     // Setting the brightness
-    if (menu_entered_brightness) {
+    if (menu_init_brightness) {
       Ser.println("Entering 'Set brightness'");
-      menu_entered_brightness = false;
+      menu_init_brightness = false;
       show_menu_brightness();
     }
 
@@ -253,27 +254,27 @@ void exit__ShowMenu() {
   Ser.println(menu_idx + 1);
 
   switch (menu_idx) {
-    case 0:
+    case 1:
       Ser.println("Default mode is set");
       fx_mgr.set_fx(0);
       ENA_auto_next_fx = true;
       break;
-    case 1:
+    case 2:
       ENA_auto_next_fx = !ENA_auto_next_fx;
       Ser.print("Auto-next FX: ");
       Ser.println(ENA_auto_next_fx ? "ON" : "OFF");
       break;
-    case 2:
+    case 3:
       Ser.print("IR distance test: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::IR_DIST) ? "ON"
                                                                      : "OFF");
       break;
-    case 3:
+    case 4:
       Ser.print("Output: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_BLACK) ? "OFF"
                                                                        : "ON");
       break;
-    case 4:
+    case 0:
       Ser.println("Brightness is set");
       break;
   }
