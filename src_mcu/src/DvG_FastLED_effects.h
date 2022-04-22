@@ -15,7 +15,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-21-04-2022
+22-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -739,19 +739,22 @@ void upd__Try() {
 State fx__Try("Try", entr__Try, upd__Try);
 
 /*------------------------------------------------------------------------------
-  DoubleWaveInteractive
+  DoubleWaveIA
+
+  An interactive double wave rainbow
+
   - StyleEnum::FULL_STRIP
   - StyleEnum::COPIED_SIDES
 ------------------------------------------------------------------------------*/
 
-void entr__DoubleWaveInteractive() {
+void entr__DoubleWaveIA() {
   init_fx();
   create_leds_snapshot();
   fx_timebase = millis();
   fx_blend = 0;
 }
 
-void upd__DoubleWaveInteractive() {
+void upd__DoubleWaveIA() {
   s1 = segmntr1.get_base_numel();
 
   for (idx1 = 0; idx1 < s1; idx1++) {
@@ -777,9 +780,7 @@ void upd__DoubleWaveInteractive() {
   duration_check();
 }
 
-State fx__DoubleWaveInteractive("DoubleWaveInteractive",
-                                entr__DoubleWaveInteractive,
-                                upd__DoubleWaveInteractive);
+State fx__DoubleWaveIA("DoubleWaveIA", entr__DoubleWaveIA, upd__DoubleWaveIA);
 
 /*------------------------------------------------------------------------------
   RainbowBarf
