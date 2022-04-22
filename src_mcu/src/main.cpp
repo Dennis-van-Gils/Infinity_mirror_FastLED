@@ -151,17 +151,7 @@ void flash_menu(const struct CRGB &color) {
   FastLED.delay(200);
 }
 
-void entr__ShowMenu() {
-  Ser.println("Entering MENU");
-  flash_menu(CRGB::Red);
-  menu_idx = 0;
-}
-
-void upd__ShowMenu() {
-  if (fsm_main.timeInCurrentState() > 10000) {
-    fsm_main.transitionTo(show__FastLED);
-  }
-
+void show_menu_option() {
   // Show menu option by lighting up the appropiate corner of the mirror
   fill_solid(leds, FLC::N, CRGB::Black);
   for (int16_t idx = menu_idx * FLC::L - FLC::MENU_WIDTH;
@@ -173,12 +163,26 @@ void upd__ShowMenu() {
     leds[modval] = CRGB::Red;
   }
   FastLED.delay(20);
+}
+
+void entr__ShowMenu() {
+  Ser.println("Entering MENU");
+  flash_menu(CRGB::Red);
+  menu_idx = 0;
+  show_menu_option();
+}
+
+void upd__ShowMenu() {
+  if (fsm_main.timeInCurrentState() > 10000) {
+    fsm_main.transitionTo(show__FastLED);
+  }
 
   // Check for button presses
   button.poll();
   if (button.singleClick()) {
     Ser.println("single click");
     menu_idx = (menu_idx + 1) % 4;
+    show_menu_option();
   }
   if (button.longPress()) {
     Ser.println("long press");
