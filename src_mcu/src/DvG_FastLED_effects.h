@@ -8,6 +8,7 @@ For inspiration:
   https://www.youtube.com/watch?v=UZxY_BLSsGg&t=236s
   https://gist.github.com/kriegsman/a916be18d32ec675fea8
   https://www.bhencke.com/pixelblaze
+  http://fastled.io/tools/paletteknife/
 
 FastLED API reference:
   https://github.com/FastLED/FastLED/wiki
