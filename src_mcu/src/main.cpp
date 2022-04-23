@@ -1,7 +1,7 @@
 /* Infinity mirror
 
 Dennis van Gils
-22-04-2022
+23-04-2022
 */
 
 #include <Arduino.h>
@@ -126,20 +126,30 @@ FSM fsm_main = FSM(show__FastLED);
 /*------------------------------------------------------------------------------
   Show Menu machinery
 
-  Menu options are indicated by lighting up one of the four corners of the
-  mirror. Always starts with option 1 selected in the menu.
+  The current menu option is indicated by lighting up a specific corner or
+  side(s) of the mirror. Clicking the button once will traverse through the
+  options. Clicking long will exit the menu.
 
-  1) All sides lit up: Set brighness
-  2) └  Default mode: Show all effects in the preset list consecutively as long
-        as an audience is present. Turn the master switch back ON if needed.
-  3) ┘  Toggle `auto-next FX` ON/OFF
-  4) ┐  Override with IR distance test
-  5) ┌  Set master switch to OFF (stay off regardless of audience present)
+  1) Sides' center
+       Set brighness
+
+  2) Corner └
+       Default mode: Show all effects in the preset list consecutively as long
+       as an audience is present. Turn the master switch back ON if needed.
+
+  3) Corner ┘
+       Toggle `auto-next FX` ON/OFF
+
+  4) Corner ┐
+       Override with IR distance test
+
+  5) Corner ┌
+       Set master switch to OFF (stay off regardless of audience present)
 
 ------------------------------------------------------------------------------*/
-static uint8_t menu_idx = 0; // Note: index starts at 0 == menu option 1
+static byte menu_idx = 1;             // Index starts at 1 == menu option 1
 static uint32_t menu_tick = millis(); // [ms] Keeps track of time
-static bool menu_init_brightness = false;
+static bool init_brightness_menu = false;
 
 void flash_menu(const struct CRGB &color) {
   fill_solid(leds, FLC::N, CRGB::Black);
@@ -154,59 +164,60 @@ void flash_menu(const struct CRGB &color) {
   FastLED.delay(200);
 }
 
-void show_menu_option() {
+void show_menu_indicator() {
+  // The current menu option is indicated by lighting up a specific corner or
+  // side(s) of the mirror
   fill_solid(leds, FLC::N, CRGB::Black);
-  if (menu_idx > 0) {
-    // Show menu option by lighting up the appropiate corner of the mirror
-    for (int16_t idx = (menu_idx - 1) * FLC::L - FLC::MENU_WIDTH;
-         idx < (menu_idx - 1) * FLC::L + FLC::MENU_WIDTH; idx++) {
-      int16_t modval = idx % FLC::N;
-      if (modval < 0) {
-        modval += FLC::N;
-      }
-      leds[modval] = CRGB::Red;
-    }
-  } else {
-    // Show menu option 5 by lighting up the four centers of the mirror sides
-    for (byte side_idx = 0; side_idx < 4; side_idx++) {
-      for (int16_t idx = side_idx * FLC::L + FLC::L / 2 - FLC::MENU_WIDTH;
-           idx < side_idx * FLC::L + FLC::L / 2 + FLC::MENU_WIDTH; idx++) {
-        int16_t modval = idx % FLC::N;
-        if (modval < 0) {
-          modval += FLC::N;
+  if (menu_idx == 1) {
+    // Light up the four centers of the mirror sides
+    for (uint16_t idx = 0; idx < FLC::N; idx++) {
+      for (byte side_idx = 0; side_idx < 4; side_idx++) {
+        if ((idx > (side_idx * FLC::L + FLC::L / 2 - FLC::MENU_WIDTH)) &
+            (idx < (side_idx * FLC::L + FLC::L / 2 + FLC::MENU_WIDTH))) {
+          leds[idx] = CRGB::Red;
         }
-        leds[modval] = CRGB::Red;
+      }
+    }
+
+  } else {
+    // Light up the appropiate corner of the mirror
+    byte corner_idx = menu_idx - 2;
+    for (int16_t idx = -FLC::L; idx < FLC::N; idx++) {
+      if ((idx >= (corner_idx * FLC::L - FLC::MENU_WIDTH)) &
+          (idx < (corner_idx * FLC::L + FLC::MENU_WIDTH))) {
+        leds[(idx + FLC::N) % FLC::N] = CRGB::Red;
       }
     }
   }
   FastLED.delay(20);
+
+  if (menu_idx == 1) {
+    menu_tick = millis();
+    init_brightness_menu = true;
+  }
 }
 
-void show_menu_brightness() {
+void show_brightness_menu() {
   // Show the set brightness as a VU meter on the bottom side
-  uint8_t bright = FastLED.getBrightness();
-  for (uint16_t idx = 0; idx < FLC::L; idx++) {
-    leds[idx] =
-        (round(255.f * idx / FLC::L) <= bright ? CRGB::Red : CRGB::Black);
-  }
   Ser.print("Brightness ");
   Ser.println(bright_lut[bright_idx]);
-
+  for (uint16_t idx = 0; idx < FLC::L; idx++) {
+    leds[idx] =
+        (round(255.f * idx / FLC::L) <= FastLED.getBrightness() ? CRGB::Red
+                                                                : CRGB::Black);
+  }
   FastLED.delay(20);
 }
 
 void entr__ShowMenu() {
   Ser.println("Entering MENU");
+  menu_idx = 1;
   flash_menu(CRGB::Red);
-  menu_idx = 0;
-  show_menu_option();
-  menu_init_brightness = true;
-  menu_tick = millis();
+  show_menu_indicator();
 }
 
 void upd__ShowMenu() {
-
-  if ((menu_idx > 0) | ((menu_idx == 0) & (millis() - menu_tick < 1000))) {
+  if ((menu_idx > 1) | ((menu_idx == 1) & (millis() - menu_tick < 1000))) {
     // Handle menu options 2 to 5 and check time-out of menu option 1 to go into
     // setting the brightness
     if (fsm_main.timeInCurrentState() > 10000) {
@@ -216,23 +227,19 @@ void upd__ShowMenu() {
     // Check for button presses
     button.poll();
     if (button.singleClick()) {
-      Ser.println("single click");
-      menu_idx = (menu_idx + 1) % 5;
-      if (menu_idx == 0) {
-        menu_tick = millis();
-      }
-      show_menu_option();
+      menu_idx = menu_idx % 5 + 1;
+      show_menu_indicator();
     }
     if (button.longPress()) {
-      Ser.println("long press");
       fsm_main.transitionTo(show__FastLED);
     }
+
   } else {
     // Setting the brightness
-    if (menu_init_brightness) {
+    if (init_brightness_menu) {
       Ser.println("Entering 'Set brightness'");
-      menu_init_brightness = false;
-      show_menu_brightness();
+      init_brightness_menu = false;
+      show_brightness_menu();
     }
 
     // Check for button presses
@@ -240,10 +247,9 @@ void upd__ShowMenu() {
     if (button.singleClick()) {
       bright_idx = (bright_idx + 1) % sizeof(bright_lut);
       FastLED.setBrightness(bright_lut[bright_idx]);
-      show_menu_brightness();
+      show_brightness_menu();
     }
     if (button.longPress()) {
-      Ser.println("long press");
       fsm_main.transitionTo(show__FastLED);
     }
   }
@@ -251,31 +257,31 @@ void upd__ShowMenu() {
 
 void exit__ShowMenu() {
   Ser.print("Exiting MENU with chosen option: ");
-  Ser.println(menu_idx + 1);
+  Ser.println(menu_idx);
 
   switch (menu_idx) {
     case 1:
+      Ser.println("Brightness is set");
+      break;
+    case 2:
       Ser.println("Default mode is set");
       fx_mgr.set_fx(0);
       ENA_auto_next_fx = true;
       break;
-    case 2:
+    case 3:
       ENA_auto_next_fx = !ENA_auto_next_fx;
       Ser.print("Auto-next FX: ");
       Ser.println(ENA_auto_next_fx ? "ON" : "OFF");
       break;
-    case 3:
+    case 4:
       Ser.print("IR distance test: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::IR_DIST) ? "ON"
                                                                      : "OFF");
       break;
-    case 4:
+    case 5:
       Ser.print("Output: ");
       Ser.println(fx_mgr.toggle_fx_override(FxOverrideEnum::ALL_BLACK) ? "OFF"
                                                                        : "ON");
-      break;
-    case 0:
-      Ser.println("Brightness is set");
       break;
   }
 
@@ -339,7 +345,6 @@ void upd__ShowFastLED() {
     }
   }
   if (button.longPress()) {
-    Ser.println("long press");
     fsm_main.transitionTo(show__Menu);
   }
 
