@@ -745,6 +745,8 @@ State fx__Try("Try", entr__Try, upd__Try);
 
   - StyleEnum::FULL_STRIP
   - StyleEnum::COPIED_SIDES
+
+  https://wokwi.com/projects/329734956267864660
 ------------------------------------------------------------------------------*/
 
 void entr__DoubleWaveIA() {
