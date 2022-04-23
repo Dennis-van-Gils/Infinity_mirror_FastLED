@@ -494,7 +494,8 @@ void loop() {
 
     } else {
       Ser.println("\nInfinity Mirror");
-      Ser.println("---------------");
+      Ser.println("https://github.com/Dennis-van-Gils/Infinity_mirror_FastLED");
+      Ser.println("----------------------------------------------------------");
       Ser.println("`  : Output ON/OFF");
       Ser.println("w  : Override FX: Toggle all leds white ON/OFF");
       Ser.println("i  : Override FX: Toggle IR distance test ON/OFF");
