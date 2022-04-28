@@ -30,7 +30,7 @@ namespace FLC {
   // Audience check: Time-out and go back to sleep when no audience is present
   // within a certain distance
   const uint32_t AUDIENCE_TIMEOUT = 84000; // [ms]
-  const uint8_t AUDIENCE_DISTANCE = 50;    // [cm]
+  const uint8_t AUDIENCE_DISTANCE = 100;   // [cm]
 
   // Menu
   const uint8_t MENU_WIDTH = 4;
