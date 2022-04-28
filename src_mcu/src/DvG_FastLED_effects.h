@@ -15,7 +15,7 @@ FastLED API reference:
   http://fastled.io/docs/3.1/
 
 Dennis van Gils
-22-04-2022
+28-04-2022
 */
 #ifndef DVG_FASTLED_EFFECTS_H
 #define DVG_FASTLED_EFFECTS_H
@@ -739,9 +739,7 @@ void upd__Try() {
 State fx__Try("Try", entr__Try, upd__Try);
 
 /*------------------------------------------------------------------------------
-  DoubleWaveIA
-
-  An interactive double wave rainbow
+  DoubleWave
 
   - StyleEnum::FULL_STRIP
   - StyleEnum::COPIED_SIDES
@@ -749,20 +747,22 @@ State fx__Try("Try", entr__Try, upd__Try);
   https://wokwi.com/projects/329734956267864660
 ------------------------------------------------------------------------------*/
 
-void entr__DoubleWaveIA() {
+void entr__DoubleWave() {
   init_fx();
   create_leds_snapshot();
   fx_timebase = millis();
   fx_blend = 0;
 }
 
-void upd__DoubleWaveIA() {
+void upd__DoubleWave() {
   s1 = segmntr1.get_base_numel();
 
   for (idx1 = 0; idx1 < s1; idx1++) {
     uint8_t c = (uint16_t)idx1 * 255 / (FLC::N - 1);
-    c = beatsin8(10, 0, 255, fx_timebase, c);                 // 10 bmp
-    c = beatsin8(20, 0, 255, fx_timebase, c + IR_dist_fract); // 20 bpm
+    c = beatsin8(10, 0, 255, fx_timebase, c); // 10 bmp
+    // c = beatsin8(20, 0, 255, fx_timebase, c + IR_dist_fract); // 20 bpm
+    c = beatsin8(20, 0, 255, fx_timebase, c); // 20 bpm
+
     fx1[idx1] = CHSV(c, 255, 255);
   }
   populate_fx1_strip();
@@ -782,7 +782,7 @@ void upd__DoubleWaveIA() {
   duration_check();
 }
 
-State fx__DoubleWaveIA("DoubleWaveIA", entr__DoubleWaveIA, upd__DoubleWaveIA);
+State fx__DoubleWave("DoubleWave", entr__DoubleWave, upd__DoubleWave);
 
 /*------------------------------------------------------------------------------
   RainbowBarf
