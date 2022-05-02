@@ -29,7 +29,7 @@ static bool ENA_auto_next_fx = true; // Automatically go to next effect?
 static bool ENA_print_FPS = false;   // Print FPS counter to serial?
 
 // Brightness
-uint8_t bright_idx = 6;
+uint8_t bright_idx = 11;
 const uint8_t bright_lut[] = {10,  30,  50,  70,  90,  110, 130,
                               150, 170, 190, 210, 230, 255};
 
@@ -45,7 +45,7 @@ Switch button = Switch(PIN_BUTTON, INPUT_PULLUP, LOW, 50, 500, 50);
 FastLED_EffectManager fx_mgr = FastLED_EffectManager({
   //        FastLED effect       strip segmentation style           duration [ms]
   //        --------------       ------------------------           -------------
-  FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 9800),
+  FX_preset(fx__HeartBeatAwaken, StyleEnum::HALFWAY_PERIO_SPLIT_N2, 5800),
   FX_preset(fx__RainbowSurf    , StyleEnum::FULL_STRIP            , 8000),
   FX_preset(fx__RainbowBarf    , StyleEnum::PERIO_OPP_CORNERS_N2  , 11000),
   FX_preset(fx__Dennis         , StyleEnum::PERIO_OPP_CORNERS_N2  , 13000),
@@ -300,7 +300,7 @@ void upd__ShowFastLED() {
   if (
       // We just started but lost audience very quickly?
       (!fx_mgr.fx_override() & (fx_mgr.fx_idx() == 0) &
-       (fx_mgr.time_in_current_fx() > 8500) &
+       (fx_mgr.time_in_current_fx() > 4500) &
        (IR_dist_cm > FLC::AUDIENCE_DISTANCE)) |
       // We ran the default program for an extended time but lost audience?
       (!fx_mgr.fx_override() & (now - tick_audience > FLC::AUDIENCE_TIMEOUT))) {
