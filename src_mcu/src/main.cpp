@@ -18,7 +18,7 @@ FASTLED_USING_NAMESPACE
 #define USE_ANSI
 #ifdef USE_ANSI
 #  include "ansi.h"
-ANSI ansi(&Serial);
+ANSI ansi(&Ser);
 #endif
 
 #include "DvG_FastLED_EffectManager.h"
@@ -424,7 +424,7 @@ void loop() {
 
   // Check for incoming serial commands
   if (Ser.available() > 0) {
-    char_cmd = Serial.read();
+    char_cmd = Ser.read();
 
     if (char_cmd == '?') {
       fx_mgr.print_fx(&Ser);
