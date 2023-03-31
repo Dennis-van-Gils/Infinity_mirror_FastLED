@@ -3,7 +3,7 @@
 Manages the Finite State Machine resonsible for calculating the FastLED effect
 
 Dennis van Gils
-19-04-2022
+31-03-2023
 */
 #ifndef DVG_FASTLED_EFFECTMANAGER_H
 #define DVG_FASTLED_EFFECTMANAGER_H
@@ -183,8 +183,6 @@ public:
 
   void print_fx(Stream *stream) {
     // NOTE: `_fsm_fx.update()` must have run to print out the proper name
-    static char buffer[STATE_NAME_LEN] = {"\0"};
-    _fsm_fx.getCurrentStateName(buffer);
 #ifdef USE_ANSI
     ansi.foreground(ANSI::yellow);
 #endif
@@ -195,7 +193,7 @@ public:
       stream->print("*");
     }
     stream->print(" - \"");
-    stream->print(buffer);
+    stream->print(_fsm_fx.getCurrentStateName());
     stream->println("\"");
 #ifdef USE_ANSI
     ansi.normal();
